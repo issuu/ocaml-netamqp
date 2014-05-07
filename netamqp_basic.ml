@@ -1,5 +1,3 @@
-(* $Id: netamqp_basic.ml 53444 2011-03-10 14:08:13Z gerd $ *)
-
 open Netamqp_types
 open Netamqp_rtypes
 open Netamqp_endpoint

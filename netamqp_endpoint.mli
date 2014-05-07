@@ -1,5 +1,3 @@
-(* $Id: netamqp_endpoint.mli 53444 2011-03-10 14:08:13Z gerd $ *)
-
 (** Endpoints are low-level containers for the protocol state
 
     They implement the send/receive queues, and the message dispatcher

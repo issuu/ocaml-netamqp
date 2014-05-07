@@ -1,5 +1,3 @@
-(* $Id: netamqp_endpoint.ml 53446 2011-03-10 14:45:03Z gerd $ *)
-
 (* TODO:
    - heartbeats (also: heartbeat frame length)
    - Move all version-specific stuff to Netamqp_methods

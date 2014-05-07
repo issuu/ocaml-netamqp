@@ -1,5 +1,3 @@
-(* $Id: netamqp_connection.mli 53444 2011-03-10 14:08:13Z gerd $ *)
-
 (** Manage AMQP connections *)
 
 (** A connection on the AMQP level is a managed version of the transport

@@ -1,5 +1,3 @@
-(* $Id: netamqp_queue.mli 53389 2011-03-08 17:16:37Z gerd $ *)
-
 (** Managing queues *)
 
 open Netamqp_types

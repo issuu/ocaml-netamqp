@@ -3,6 +3,7 @@ doc/html
 *.a
 *.cm?
 *.omc
+*.cmti
 *~
 .omakedb*
 netamqp.cmxa

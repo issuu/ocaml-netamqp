@@ -1,8 +1,3 @@
-(* $Id: netamqp_transport.mli 53300 2011-02-22 00:09:06Z gerd $
- * ----------------------------------------------------------------------
- *
- *)
-
 (** Low-level AMQP transporters *)
 
 open Netamqp_types
@@ -65,7 +60,7 @@ object
   method read_eof : bool
     (** Whether the EOF marker has been read *)
 
-  method start_reading : 
+  method start_reading :
     when_done:( frame result_eof -> unit) -> unit -> unit
     (** Start reading from the connection. When a whole message has been
       * received, the [when_done] callback is invoked with the
@@ -113,9 +108,9 @@ object
       * is only a protocol handshake. After a shutdown,[read_eof]
       * is true. Call [inactivate] to close the descriptor.
      *)
- 
+
   method cancel_shutting_down : unit -> unit
-    (** Cancels the shutdown procedure. After that, the state of the 
+    (** Cancels the shutdown procedure. After that, the state of the
       * connection is undefined. The [when_done] callback is invoked with
       * the [`Cancelled].
       *
@@ -129,7 +124,7 @@ object
 
   method inactivate : unit -> unit
     (** Inactivates the connection immediately, and releases any resources
-      * the controller is responsible for (e.g. closes file descriptors). 
+      * the controller is responsible for (e.g. closes file descriptors).
       * Note that this is more than
       * cancelling all pending operations and shutting the connection down.
       * However, the details of this method are implementation-defined.

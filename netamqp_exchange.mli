@@ -1,5 +1,3 @@
-(* $Id: netamqp_exchange.mli 53368 2011-03-03 22:45:18Z gerd $ *)
-
 (** Managing exchanges *)
 
 open Netamqp_types

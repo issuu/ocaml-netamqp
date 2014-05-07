@@ -1,5 +1,3 @@
-(* $Id: netamqp_rtypes.ml 53347 2011-03-01 00:38:28Z gerd $ *)
-
 open Netamqp_types
 
 type uint2 = int

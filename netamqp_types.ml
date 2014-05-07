@@ -1,5 +1,3 @@
-(* $Id: netamqp_types.ml 53347 2011-03-01 00:38:28Z gerd $ *)
-
 type channel = int
 
 type transport_type =

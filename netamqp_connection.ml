@@ -1,5 +1,3 @@
-(* $Id: netamqp_connection.ml 53444 2011-03-10 14:08:13Z gerd $ *)
-
 open Netamqp_types
 open Netamqp_endpoint
 open Uq_engines.Operators

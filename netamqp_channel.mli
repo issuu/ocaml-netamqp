@@ -1,5 +1,3 @@
-(* $Id: netamqp_channel.mli 53444 2011-03-10 14:08:13Z gerd $ *)
-
 (** Manage AMQP channels *)
 
 (** A channel is a data path between the client and the server. Several

@@ -1,5 +1,3 @@
-(* $Id: netamqp_rtypes.mli 53347 2011-03-01 00:38:28Z gerd $ *)
-
 (** Support for remote types not already covered by [Rtypes] *)
 
 (** {2 Integers} *)

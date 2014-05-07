@@ -1,9 +1,5 @@
-(* $Id: netamqp_transport.ml 53347 2011-03-01 00:38:28Z gerd $
- * ----------------------------------------------------------------------
- *
- * This module is derived from rpc_transport.ml, which is published
+(* This module is derived from rpc_transport.ml, which is published
  * as part of Ocamlnet, and whose copyright holder is Gerd Stolpmann.
- *
  *)
 
 open Netamqp_types

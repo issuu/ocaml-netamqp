@@ -1,5 +1,3 @@
-(* $Id: amqp_gen.ml 53397 2011-03-09 21:09:13Z gerd $ *)
-
 (* Generate Netamqp_methods from amqp-0-9-1.xml *)
 
 open Printf

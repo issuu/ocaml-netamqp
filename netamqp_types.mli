@@ -1,5 +1,3 @@
-(* $Id: netamqp_types.mli 53444 2011-03-10 14:08:13Z gerd $ *)
-
 (** General types for AMQP *)
 
 (** {1 Transport} *)

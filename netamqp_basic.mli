@@ -1,5 +1,3 @@
-(* $Id: netamqp_basic.mli 53389 2011-03-08 17:16:37Z gerd $ *)
-
 (** Sending and receiving messages via a queue *)
 
 open Netamqp_types

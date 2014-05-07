@@ -1,5 +1,3 @@
-(* $Id: netamqp_tx.mli 53389 2011-03-08 17:16:37Z gerd $ *)
-
 (** Transactions *)
 
 (** Transactions cover only the [publish] and [ack] methods *)
