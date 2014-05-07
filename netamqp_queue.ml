@@ -54,7 +54,7 @@ let declare_e ~channel ~queue  ?(durable=false) ?(exclusive=false)
     channel
     (`AMQP_0_9
        (`Queue_declare
-	  (0, queue, false, durable, exclusive, auto_delete, no_wait, [])))
+	  (0, queue, false, durable, exclusive, auto_delete, no_wait, arguments)))
     None
   ++ (fun (m, _) ->
 	match m with
