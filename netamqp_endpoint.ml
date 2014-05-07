@@ -132,7 +132,7 @@ type endpoint =
 	 *)
       mutable suggest_cnt : int;
       mutable out_q :
-	(channel, (Netamqp_types.frame * (exn option->unit)) Queue.t) Hashtbl.t;
+	(channel, (Netamqp_types.frame list * (exn option -> unit)) Queue.t) Hashtbl.t;
         (* The unit->unit function is called when the frame is sent *)
       mutable out_prio_q : Netamqp_types.frame Queue.t;
       mutable out_next_ch : channel Queue.t;
@@ -741,7 +741,7 @@ and output_start ep =
 	(* Check whether we can do something. *)
 	if not(Queue.is_empty ep.out_prio_q) then (
 	  can_output := true;
-	  output_next ep mplex ((Queue.take ep.out_prio_q), (fun _ -> ()))
+	  output_next ep mplex ([(Queue.take ep.out_prio_q)], (fun _ -> ()))
 	)
 	else (
 	  let n = Queue.length ep.out_next_ch in
@@ -755,7 +755,7 @@ and output_start ep =
 	    if ch_is_on then (
 	      let ch_q =
 		try Hashtbl.find ep.out_q ch
-		with Not_found -> Queue.create() in
+		with Not_found -> Queue.create () in
 	      if not (Queue.is_empty ch_q) then (
 		k := n;
 		can_output := true;
@@ -778,22 +778,20 @@ and output_start ep =
 	  )
 	)
 
-and output_next ep mplex (frame,is_sent) =
-  dlog "output_next";
-  mplex # start_writing
-    ~when_done:(fun r ->
-		  ep.out_active <- false;
-		  match r with
-		    | `Ok() ->
-			(* Success. Try to write the next frame: *)
-			is_sent None;
-			output_start ep
-		    | `Error e ->
-			(* Error *)
-			is_sent (Some e);
-			abort_and_propagate_error ep e
-	       )
-    frame
+and output_next ep mplex = function
+  | (x :: xs, is_sent) ->
+    dlog "output_next_frame";
+    mplex # start_writing
+      ~when_done:(function
+      | `Ok () ->
+        output_next ep mplex (xs, is_sent)
+      | `Error e -> is_sent (Some e);
+        abort_and_propagate_error ep e
+      ) x
+  | ([], is_sent) ->
+    ep.out_active <- false;
+    is_sent None;
+    output_start ep
 
 
 let shared_sub_mstring (ms : Xdr_mstring.mstring)
@@ -1226,7 +1224,7 @@ let async_c2s_e ep (m : async_client_to_server_method_t) d_opt ch =
       | None -> signal (`Done ())
       | Some e -> signal (`Error e) in
   let frames = mk_frames ep (m :> method_t) d_opt ch in
-  List.iter (fun fr -> Queue.add (fr,sg) q) frames;
+  Queue.add (frames, sg) q;
   output_thread ep;
   eng
 
@@ -1262,7 +1260,7 @@ let sync_c2s_e ?no_wait
 	     | Some e -> notify (`Error e)
 	  ) in
   let frames = mk_frames ep (m :> method_t) d_opt ch in
-  List.iter (fun fr -> Queue.add (fr,sg) q) frames;
+  Queue.add (frames, sg) q;
   let resp_mtypes = response_types_of_method (m :> method_t) in
   ( match no_wait with
       | None ->
