@@ -1,5 +1,8 @@
 USE_OCAMLFIND = true
 BYTE_ENABLED = true
+NATIVE_ENABLED = true
+
+OCAMLFLAGS   = -thread -g -w @A-4-29-33-41-44-45 -bin-annot
 
 GEN[] =
    netamqp_methods_0_9.ml

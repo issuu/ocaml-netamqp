@@ -45,7 +45,7 @@ object
   method eff_max_frame_size : int
   method reading : bool
   method read_eof : bool
-  method start_reading : 
+  method start_reading :
     when_done:( frame result_eof -> unit) -> unit -> unit
   method cancel_rd_polling : unit -> unit
   method abort_rw : unit -> unit
@@ -63,7 +63,6 @@ module Debug = struct
   let enable = ref false
 end
 
-let dlog = Netlog.Debug.mk_dlog "Netamqp_transport" Debug.enable
 let dlogr = Netlog.Debug.mk_dlogr "Netamqp_transport" Debug.enable
 
 let () =
@@ -75,25 +74,17 @@ let mem_size = Netsys_mem.pool_block_size Netsys_mem.default_pool
 
 let fallback_size = 16384   (* for I/O via Unix *)
 
-let mem_alloc() =
-  Netsys_mem.pool_alloc_memory Netsys_mem.default_pool
-
-
-let mem_dummy() =
-  Bigarray.Array1.create
-    Bigarray.char Bigarray.c_layout 0
-
 let mk_mstring s =
   Xdr_mstring.string_based_mstrings # create_from_string
     s 0 (String.length s) false
-  
+
 exception Continue of (unit -> unit)
 
 
-class tcp_amqp_multiplex_controller sockname peername 
-        (mplex : Uq_engines.multiplex_controller) esys 
+class tcp_amqp_multiplex_controller sockname peername
+        (mplex : Uq_engines.multiplex_controller) esys
       : amqp_multiplex_controller =
-  let () = 
+  let () =
     dlogr (fun () ->
 	     sprintf "new tcp_amqpQ_multiplex_controller mplex=%d"
 	       (Oo.id mplex))
@@ -105,7 +96,7 @@ class tcp_amqp_multiplex_controller sockname peername
       Sys.max_string_length in
 object(self)
   val mutable rd_buffer = Netpagebuffer.create mem_size
-  val mutable rd_buffer_nomem = 
+  val mutable rd_buffer_nomem =
     if mplex#mem_supported then "" else String.create fallback_size
 
   val mutable rd_mode = `Frame_header 0
@@ -137,7 +128,7 @@ object(self)
     assert(not mplex#reading);
 
     let rec est_reading() =
-      let mplex_when_done exn_opt n =
+      let mplex_when_done exn_opt _ =
 	self # timer_event `Stop `R;
 	match exn_opt with
 	  | None ->
@@ -151,13 +142,13 @@ object(self)
 	  | Some Uq_engines.Cancelled ->
 	      ()   (* Ignore *)
 	  | Some error ->
-	      return_error error 
+	      return_error error
       in
-      
+
       rd_processing <- false;
       if mplex#mem_supported then (
 	let (b, start, len) = Netpagebuffer.page_for_additions rd_buffer in
-	mplex # start_mem_reading 
+	mplex # start_mem_reading
 	  ~when_done:(fun exn_opt n ->
 			dlogr (fun () ->
 				 sprintf "Reading [mem]: %s%s"
@@ -176,11 +167,11 @@ object(self)
 	  ~when_done:(fun exn_opt n ->
 			dlogr (fun () ->
 				 sprintf "Reading [str]: %s%s"
-				   (Rpc_util.hex_dump_s 
+				   (Rpc_util.hex_dump_s
 				      rd_buffer_nomem 0 (min n 200))
 				   (if n > 200 then "..." else "")
 			      );
-			Netpagebuffer.add_sub_string 
+			Netpagebuffer.add_sub_string
 			  rd_buffer rd_buffer_nomem 0 n;
 			mplex_when_done exn_opt n
 		     )
@@ -194,7 +185,7 @@ object(self)
       rd_processing <- true;
       let len = Netpagebuffer.length rd_buffer in
       match rd_mode with
-	| `Frame_header n ->
+	| `Frame_header _ ->
 	    (* n: we already saw n bytes *)
 	    let n' = min len 7 in
 	    rd_mode <- `Frame_header n';
@@ -260,7 +251,7 @@ object(self)
 		  Netpagebuffer.sub rd_buffer payload_start size in
 		let ms =
 		  mk_mstring data in
-		let frame = 
+		let frame =
 		  { frame_type = frame_type;
 		    frame_channel = channel;
 		    frame_payload = [ms]
@@ -286,14 +277,14 @@ object(self)
     and return_eof () =
       rd_processing <- false;
       if not aborted then
-	when_done `End_of_file 
+	when_done `End_of_file
 
     in
     if rd_processing then
       process ()
     else
       est_reading()
-	    
+
 
   method start_writing ~when_done frame =
 
@@ -345,7 +336,7 @@ object(self)
 	    Buffer.add_substring b s p l;
 	    gather_items b items'
 	| _ ->
-	    `String(Buffer.contents b, 0, Buffer.length b) :: 
+	    `String(Buffer.contents b, 0, Buffer.length b) ::
 	      optimize_items items in
 
 
@@ -379,7 +370,7 @@ object(self)
 		      let l' = l-n in
 		      if l' > 0 then
 			est_writing (`String(s,p+n,l')) remaining
-		      else 
+		      else
 			est_writing_next remaining
 	      )
 	  | Some Uq_engines.Cancelled ->
@@ -392,7 +383,7 @@ object(self)
       ( match item with
 	  | `Memory(m,p,l,_,_) ->
 	      dlogr (fun () ->
-		       sprintf "Writing [mem]: %s%s" 
+		       sprintf "Writing [mem]: %s%s"
 			 (Rpc_util.hex_dump_m m p (min l 200))
 			 (if l > 200 then "..." else "")
 		    );
@@ -400,7 +391,7 @@ object(self)
 		~when_done:mplex_when_done m p l
 	  | `String(s,p,l) ->
 	      dlogr (fun () ->
-		       sprintf "Writing [str]: %s%s" 
+		       sprintf "Writing [str]: %s%s"
 			 (Rpc_util.hex_dump_s s p (min l 200))
 			 (if l > 200 then "..." else "")
 		    );
@@ -437,12 +428,12 @@ object(self)
 	  (* Create frame header and frame end mstrings: *)
 	  let l = Xdr_mstring.length_mstrings frame.frame_payload in
 	  if l > max_frame_size then (
-	    dlogr 
+	    dlogr
 	      (fun () -> sprintf "l=%d max_frame_size=%d" l max_frame_size);
 	    raise(Error "The frame is too large")
 	  );
 	  let s = String.create 7 in
-	  let c0 = 
+	  let c0 =
 	    match frame.frame_type with
 	      | `Method -> '\001'
 	      | `Header -> '\002'
@@ -464,7 +455,7 @@ object(self)
     aborted <- true;
     mplex # cancel_reading();
     mplex # cancel_writing()
-    
+
   method start_shutting_down ~when_done () =
     dlogr (fun () ->
 	     sprintf "start_shutting_down mplex=%d"
@@ -516,7 +507,7 @@ object(self)
 	      let g = Unixqueue.new_group esys in
 	      timer_group <- Some g;
 	      Unixqueue.once esys g tmo
-		(fun () -> 
+		(fun () ->
 		   timer_group <- None;
 		   notify()
 		)
@@ -540,17 +531,17 @@ end
 
 let tcp_amqp_multiplex_controller ?(close_inactive_descr=true)
                                   ?(preclose=fun()->()) fd esys =
-  let sockname = 
+  let sockname =
     try
-      `Sockaddr(Unix.getsockname fd) 
+      `Sockaddr(Unix.getsockname fd)
     with
       | Unix.Unix_error(_,_,_) -> `Implied in
-  let peername = 
+  let peername =
     try
       `Sockaddr(Netsys.getpeername fd)
     with
       | Unix.Unix_error(_,_,_) -> `Implied in
-  let mplex = 
+  let mplex =
     Uq_engines.create_multiplex_controller_for_connected_socket
       ~close_inactive_descr ~preclose
       fd esys in

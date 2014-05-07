@@ -92,15 +92,6 @@ let encode_shortstr_straight s =
   let p = String.make 1 (Char.unsafe_chr n) in
   ( [p; s] (* ! *), n+1 )
 
-let encode_shortstr_for_field s =
-  let n = String.length s in
-  if n > 255 then raise(Encode_error "String too long (shortstr)");
-  let p = String.create 2 in
-  String.unsafe_set p 0 's';
-  String.unsafe_set p 1 (Char.unsafe_chr n);
-  ( [p; s], n+2 )
-
-
 let decode_longstr_nocopy s c l =
   assert(String.length s >= l);
   if !c >= l - 3 then raise(Decode_error "Message too short");
@@ -148,7 +139,7 @@ let rec parse_table s c l =
       (name, v) :: next_field()
     )
     else
-      [] 
+      []
   in
   next_field()
 
@@ -244,7 +235,7 @@ and decode_field s c l : table_field =
 	let v = `Shortstr x in
 	v
  *)
-    | 'S' -> 
+    | 'S' ->
 	let x = decode_longstr s c l in
 	let v = `Longstr x in
 	v
@@ -272,19 +263,9 @@ and decode_field s c l : table_field =
 	`Null
     | _ ->
 	raise(Decode_error "Bad field type in table")
-	  
-and decode_array s c l =
-  let (p,n) = decode_longstr_nocopy s c l in
-  let c' = ref p in
-  let acc = ref [] in
-  while !c' < !c do
-    let v = decode_field s c' !c in
-    acc := v :: !acc
-  done;
-  List.rev !acc
 
 and decode_table s c l =
-  let (p,n) = decode_longstr_nocopy s c l in
+  let (p, _) = decode_longstr_nocopy s c l in
   let c' = ref p in
   let t = parse_table s c' !c in
   if !c <> !c' then
@@ -373,9 +354,9 @@ let rec encode_field field =
 (*
     | `Array x ->
 	let len = ref 0 in
-	let x' = 
+	let x' =
 	  List.flatten
-	    (List.map 
+	    (List.map
 	       (fun xe ->
 		  let (l,n) = encode_field xe in
 		  len := !len + n;
@@ -415,7 +396,7 @@ and encode_table_straight x =
 	    n := !n + n1 + n2;
 	    l1 @ l2
 	 )
-	 x 
+	 x
       ) in
   let p = Rtypes.uint4_as_string (Rtypes.uint4_of_int !n) in
   (p :: l, !n + 4)

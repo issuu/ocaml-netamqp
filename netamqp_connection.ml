@@ -86,11 +86,11 @@ let open_e c auth_l lp vhost =
 
   (* Register the handler for the "start" method: *)
   register_sync_s2c
-    c.ep (`AMQP_0_9 `Connection_start) 0 
+    c.ep (`AMQP_0_9 `Connection_start) 0
     (fun start_meth ->
        match start_meth with
 	 | `AMQP_0_9
-	     (`Connection_start(v_maj, v_min, props, mechs_s, locales)) ->
+	     (`Connection_start(_v_maj, _v_min, props, mechs_s, locales)) ->
 	     catch_error
 	       (fun () ->
 		  if c.state <> `Start then
@@ -119,9 +119,8 @@ let open_e c auth_l lp vhost =
 		  (* This is for PLAIN auth - we don't have anything else: *)
 		  let resp = "\000" ^ user ^ "\000" ^ pw in
 		  c.state <- `Start_ok;
-		  let client_props = [] in
 		  `AMQP_0_9(`Connection_start_ok
-			      (client_props, auth_s, resp, loc))
+			      (props, auth_s, resp, loc))
 	       )
 	 | _ ->
 	     assert false
@@ -132,7 +131,7 @@ let open_e c auth_l lp vhost =
 
   (* Register the handler for the "tune" method: *)
   register_sync_s2c
-    c.ep (`AMQP_0_9 `Connection_tune) 0 
+    c.ep (`AMQP_0_9 `Connection_tune) 0
     (fun tune_meth ->
        match tune_meth with
 	 | `AMQP_0_9(`Connection_tune(ch_max, frame_max, heartbeat)) ->
@@ -149,7 +148,7 @@ let open_e c auth_l lp vhost =
 		  let mplex_eff_frame_max =
 		    Rtypes.uint4_of_int (eff_max_frame_size c.ep) in
 		  let eff_frame_max =
-		    if frame_max = null_uint4 || 
+		    if frame_max = null_uint4 ||
 		       (Rtypes.gt_uint4 frame_max mplex_eff_frame_max)
 		    then
 		      mplex_eff_frame_max
@@ -159,7 +158,7 @@ let open_e c auth_l lp vhost =
 		  Netlog.logf `Info
 		    "AMQP: connection-tune-ok frame_max=%Ld"
 		    (Rtypes.int64_of_uint4 eff_frame_max);
-		  `AMQP_0_9(`Connection_tune_ok(ch_max, eff_frame_max, 
+		  `AMQP_0_9(`Connection_tune_ok(ch_max, eff_frame_max,
 						heartbeat))
 	       )
 	 | _ ->
@@ -169,7 +168,7 @@ let open_e c auth_l lp vhost =
        (* After tune, we have to open: *)
        let open_e =
 	 sync_c2s_e
-	   c.ep (`AMQP_0_9 (`Connection_open(c.vhost, "", false))) 
+	   c.ep (`AMQP_0_9 (`Connection_open(c.vhost, "", false)))
 	   None 0 300.0 in
        Uq_engines.when_state
 	 ~is_done:(fun (resp_m, _) ->
@@ -220,11 +219,11 @@ let open_e c auth_l lp vhost =
 	 | _ ->
 	     assert false
     )
-    (fun () -> 
+    (fun () ->
        (* Trigger now the disconnect, following directly after sending
 	  close-ok
 	*)
-       quick_disconnect c.ep; 
+       quick_disconnect c.ep;
     );
 
   (* Watch out for errors: *)
@@ -242,7 +241,7 @@ let open_e c auth_l lp vhost =
 
   let all_e =
     Uq_engines.sync_engine ann_e handshake_e
-    ++ (fun ((),()) -> 
+    ++ (fun ((),()) ->
 	  Unixqueue.clear esys tmo_g;
 	  eps_e (`Done ()) esys) in
 
@@ -261,7 +260,7 @@ let open_e c auth_l lp vhost =
 
 let open_s c auth_l lp vhost =
   sync (open_e c auth_l lp) vhost
-  
+
 
 let is_open c =
   c.state = `Opened
@@ -270,7 +269,7 @@ let is_open c =
 let close_e c =
   if c.state <> `Opened then
     raise Not_open;
-  
+
   c.state <- `Close_requested;
 
   let esys = event_system c.ep in

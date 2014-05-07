@@ -28,11 +28,11 @@ let declare_passively_e ~channel ~exchange_name ?(no_wait=false) () =
        (`Exchange_declare
 	  (0, exchange_name, "", true, false, false, false, no_wait, [])))
     None
-  ++ (fun (m, _) ->
+  ++ (fun (_, _) ->
 	eps_e (`Done()) esys
      )
 
-let declare_passively_s ~channel ~exchange_name ?no_wait () = 
+let declare_passively_s ~channel ~exchange_name ?no_wait () =
   sync (declare_passively_e ~channel ~exchange_name ?no_wait) ()
 
 
@@ -44,10 +44,10 @@ let declare_e ~channel ~exchange_name ~exchange_type ?(durable=false)
     channel
     (`AMQP_0_9
        (`Exchange_declare
-	  (0, exchange_name, exchange_type, false, durable, false, false, 
+	  (0, exchange_name, exchange_type, false, durable, false, false,
 	   no_wait, arguments)))
     None
-  ++ (fun (m, _) ->
+  ++ (fun (_, _) ->
 	eps_e (`Done()) esys
      )
 
@@ -67,7 +67,7 @@ let delete_e ~channel ~exchange_name ?(if_unused=false) ?(no_wait=false) () =
        (`Exchange_delete
 	  (0, exchange_name, if_unused, no_wait)))
     None
-  ++ (fun (m, _) ->
+  ++ (fun (_, _) ->
 	eps_e (`Done()) esys
      )
 

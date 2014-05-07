@@ -23,7 +23,7 @@ type connector =
 
 type transport_layer =
     [ `TCP of connector
-    | `Custom of 
+    | `Custom of
 	(unit -> Netamqp_transport.amqp_multiplex_controller Uq_engines.engine)
     ]
 
@@ -122,10 +122,10 @@ type endpoint =
       mutable state : state;
       mutable state_notifications : (unit -> unit) Queue.t;
       mutable timeout : float;
-      mutable conn_eng : 
+      mutable conn_eng :
 	Netamqp_transport.amqp_multiplex_controller Uq_engines.engine option;
       mutable announced : bool;
-      mutable announce_notification : 
+      mutable announce_notification :
 	(unit Uq_engines.final_state -> unit) option;
       mutable conn_tmo_group : Unixqueue.group option;
       mutable channels : (channel, bool) Hashtbl.t;
@@ -133,7 +133,7 @@ type endpoint =
 	   The bool arg is the flow control flag
 	 *)
       mutable suggest_cnt : int;
-      mutable out_q : 
+      mutable out_q :
 	(channel, (Netamqp_types.frame * (exn option->unit)) Queue.t) Hashtbl.t;
         (* The unit->unit function is called when the frame is sent *)
       mutable out_prio_q : Netamqp_types.frame Queue.t;
@@ -172,12 +172,6 @@ let mplex_opt ep =
 	    | _ -> None
 	)
     | None -> None
-
-let mplex ep =
-  match mplex_opt ep with
-    | None -> failwith "Netamqp_endpoint.mplex"
-    | Some mplex -> mplex
-
 
 let string_of_state =
   function
@@ -263,7 +257,7 @@ let error_regs_to_channel ep chan_opt err =
       )
       ep.in_tab
       [] in
-  List.iter 
+  List.iter
     (fun (ch,mtype) -> error_regs ep ch mtype err)
     keys
 
@@ -296,13 +290,13 @@ let tell_listeners ep ch_opt err =
     Hashtbl.remove ep.err_tab ch_opt
   else
     Hashtbl.replace ep.err_tab ch_opt listeners'
-  
+
 
 let abort ep =
   dlog "abort";
   ( match ep.conn_eng with
       | None -> ()
-      | Some eng -> 
+      | Some eng ->
 	  ( match eng#state with
 	      | `Done mplex ->
 		  mplex # inactivate()
@@ -315,14 +309,14 @@ let abort ep =
   );
   ( match ep.conn_tmo_group with
       | None -> ()
-      | Some g -> 
+      | Some g ->
 	  Unixqueue.clear ep.esys g;
 	  ep.conn_tmo_group <- None
   )
 
 let propagate_error ep err chan_opt =
   dlogr
-    (fun () -> 
+    (fun () ->
        sprintf "propagate_error chan=%s err=%s"
 	 (match chan_opt with
 	    | None -> "all"
@@ -487,7 +481,7 @@ let response_types_of_method (m : method_t)
     | `AMQP_0_9 m' ->
 	let mtype = Netamqp_methods_0_9.type_of_method m' in
 	List.map
-	  (fun mt -> 
+	  (fun mt ->
 	     match mt with
 	       | #any_server_to_client_method_type_0_9_t as mt' ->
 		   `AMQP_0_9 mt'
@@ -509,7 +503,7 @@ let proto_version_string =
     | `AMQP_0_9 `One ->
 	"\000\009\001"
 
-let coerce_to_sync_server_to_client_method_t (m1 : method_t) 
+let coerce_to_sync_server_to_client_method_t (m1 : method_t)
     : sync_server_to_client_method_t =
   match m1 with
     | `AMQP_0_9 m2 ->
@@ -521,7 +515,7 @@ let coerce_to_sync_server_to_client_method_t (m1 : method_t)
 	)
 
 
-let coerce_to_async_server_to_client_method_t (m1 : method_t) 
+let coerce_to_async_server_to_client_method_t (m1 : method_t)
     : async_server_to_client_method_t =
   match m1 with
     | `AMQP_0_9 m2 ->
@@ -565,7 +559,7 @@ let dispatch_method ep (m : any_server_to_client_method_t) d_opt ch =
       "Netamqp: Method cannot be dispatched channel=%d method=%s"
       ch (string_of_method (m :> method_t))
   ) else (
-    dlogr 
+    dlogr
       (fun () ->
 	 sprintf "dispatch_method ch=%d data=%B meth=%s"
 	   ch (d_opt <> None) (string_of_method (m :> method_t))
@@ -590,7 +584,7 @@ let handle_frame_0_9 ep frame =
 	     | `Proto_header -> "proto_header"
 	 )
 	 frame.frame_channel
-	 (Rpc_util.hex_dump_s s 0 (String.length s) ^ 
+	 (Rpc_util.hex_dump_s s 0 (String.length s) ^
 	    if n > String.length s then "..." else "")
     );
   let msg = Netamqp_methods_0_9.decode_message frame in
@@ -599,13 +593,13 @@ let handle_frame_0_9 ep frame =
 	  (* First check whether we are already building a
 	     data item
 	   *)
-	  if Hashtbl.mem ep.in_build frame.frame_channel 
+	  if Hashtbl.mem ep.in_build frame.frame_channel
 	  then (
 	    dlog "content not fully transmitted - dropping method";
 	    abort_and_propagate_error ep (Unexpected_frame frame);
 	    Hashtbl.remove ep.in_build frame.frame_channel
 	  );
-	  (* If the method is not followed by data we can immediately 
+	  (* If the method is not followed by data we can immediately
 	     dispatch on it. Otherwise we need to create a builder
 	   *)
 	  if method_has_content_0_9 m then (
@@ -624,7 +618,7 @@ let handle_frame_0_9 ep frame =
 	  if not ep.announced then (
 	    match ep.announce_notification with
 	      | None -> ()
-	      | Some f -> 
+	      | Some f ->
 		  f (`Done());
 		  ep.announced <- true
 	  )
@@ -674,7 +668,7 @@ let handle_frame_0_9 ep frame =
 	  )
       | `Heartbeat ->
 	  ()
-      | `Proto_header p ->
+      | `Proto_header _ ->
 	  ( match ep.announce_notification with
 	      | None ->
 		  dlog "unexpexted proto header";
@@ -711,7 +705,7 @@ let rec input_thread ep =
 			      dlog "got frame";
 			      let cont =
 				try
-				  ep.drop_frames || 
+				  ep.drop_frames ||
 				    (handle_frame ep frame; true)
 				with
 				  | e ->
@@ -724,7 +718,7 @@ let rec input_thread ep =
 			      abort_for_eof ep
 		     )
 	  ()
-	
+
 
 
 (**********************************************************************)
@@ -743,7 +737,7 @@ and output_start ep =
 	ep.out_active <- true;
 
 	dlog "checking for output";
-	
+
 	let can_output = ref false in
 
 	(* Check whether we can do something. *)
@@ -761,7 +755,7 @@ and output_start ep =
 	    let ch_is_on =
 	      try Hashtbl.find ep.channels ch with Not_found -> false in
 	    if ch_is_on then (
-	      let ch_q = 
+	      let ch_q =
 		try Hashtbl.find ep.out_q ch
 		with Not_found -> Queue.create() in
 	      if not (Queue.is_empty ch_q) then (
@@ -771,7 +765,7 @@ and output_start ep =
 	      )
 	    )
 	  done;
-	  
+
 	  if not !can_output then (
 
 	    (* If we reach this point, nothing can be output. Stop the
@@ -779,13 +773,13 @@ and output_start ep =
 	       procedure can be continued.
 	     *)
 	    ep.out_active <- false;
-	    
+
 	    dlog "nothing to output";
-	    
+
 	    maybe_disconnect ep
 	  )
 	)
-  
+
 and output_next ep mplex (frame,is_sent) =
   dlog "output_next";
   mplex # start_writing
@@ -813,7 +807,7 @@ let shared_sub_mstring (ms : Xdr_mstring.mstring)
   let ms_len = ms#length in
   if sub_len < 0 || sub_pos < 0 || sub_pos > ms_len - sub_len then
     invalid_arg "Netamqp_endpoint.shared_sub_mstring";
-  ( object(self)
+  ( object(_)
       method length = sub_len
       method blit_to_string mpos s spos len =
 	ms#blit_to_string (sub_pos+mpos) s spos len
@@ -882,11 +876,11 @@ let mk_frames_0_9 ep (m : Netamqp_methods_0_9.method_t) d_opt ch =
 		    );
 		  let body_frames =
 		    List.map
-		      (fun b -> 
+		      (fun b ->
 			 Netamqp_methods_0_9.encode_message (`Body [b]) ch
 		      )
 		      split_bodies in
-		    
+
 		  m_frame :: h_frame :: body_frames
 	  )
   )
@@ -919,7 +913,7 @@ let connect ep =
 	| `TCP conn ->
 	    let spec, host_opt =
 	      match conn with
-		| `Sockaddr (Unix.ADDR_INET(ip,port)) -> 
+		| `Sockaddr (Unix.ADDR_INET(ip,port)) ->
 		    `Sock_inet(Unix.SOCK_STREAM, ip, port), None
 		| `Sockaddr (Unix.ADDR_UNIX path) ->
 		    `Sock_unix(Unix.SOCK_STREAM, path), None
@@ -1064,7 +1058,7 @@ let reset ep =
   ep.quick_disconnect <- false;
   enable_channel_i ep 0
 
-      
+
 let configure_timeout ep tmo =
   ep.timeout <- tmo
 
@@ -1098,7 +1092,7 @@ let eff_max_frame_size ep =
 	failwith "Netamqp_endpoint.eff_max_frame_size: not connected"
     | Some mplex ->
 	mplex#eff_max_frame_size
- 
+
 
 let getsockname ep =
   match mplex_opt ep with
@@ -1119,7 +1113,7 @@ let drop_frames ep =
 
 let clear_output ep =
   Queue.clear ep.out_prio_q;
-  Hashtbl.iter (fun ch q -> Queue.clear q) ep.out_q
+  Hashtbl.iter (fun _ q -> Queue.clear q) ep.out_q
 
 let expect_eof ep =
   ep.expect_eof <- true
@@ -1267,7 +1261,7 @@ let sync_c2s_e ?no_wait
       | Some nw ->
 	  (function
 	     | None -> notify (`Done (nw,None))
-	     | Some e -> notify (`Error e) 
+	     | Some e -> notify (`Error e)
 	  ) in
   let frames = mk_frames ep (m :> method_t) d_opt ch in
   List.iter (fun fr -> Queue.add (fr,sg) q) frames;
@@ -1313,7 +1307,7 @@ let sync_c2s_e ?no_wait
 		 error_regs_to_channel ep (Some ch) Timeout
 	      )
 	  )
-      | Some nw ->
+      | Some _ ->
 	  ()
   );
   output_thread ep;
@@ -1350,7 +1344,7 @@ let register_async_s2c ep (mtype : async_server_to_client_method_type_t) ch cb =
     with Not_found -> [] in
   Hashtbl.replace ep.in_tab (ch,mtype') (reg :: l)
 
-let register_sync_s2c ep (mtype : sync_server_initiated_method_type_t) ch cb 
+let register_sync_s2c ep (mtype : sync_server_initiated_method_type_t) ch cb
                       post_action =
   if ch < 0 || ch > 65535 then
     invalid_arg "Netamqp_endpoint.register_sync_s2c: bad channel";
@@ -1394,4 +1388,3 @@ let register_sync_s2c ep (mtype : sync_server_initiated_method_type_t) ch cb
     try Hashtbl.find ep.in_tab (ch,mtype')
     with Not_found -> [] in
   Hashtbl.replace ep.in_tab (ch,mtype') (reg :: l)
-
