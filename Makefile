@@ -49,26 +49,16 @@ FILES = \
   INSTALL \
   LICENSE
 
-GFILES = \
-  generated/netamqp_methods_0_9.ml \
-  generated/netamqp_methods_0_9.mli
-
-
-release:
-	if [ ! -d doc/html ]; then echo "No docs!"; exit 1; fi
+release: all doc
 	mkdir -p release
 	rm -rf release/$(fullname)
 	mkdir release/$(fullname)
 	mkdir release/$(fullname)/doc
 	mkdir release/$(fullname)/doc/html
-	mkdir release/$(fullname)/generated
 	mkdir release/$(fullname)/examples
 	cp $(FILES) release/$(fullname)
-	cp $(GFILES) release/$(fullname)/generated
 	cp examples/*.ml release/$(fullname)/examples
 	cp doc/html/*.html release/$(fullname)/doc/html
 	cp doc/html/*.css release/$(fullname)/doc/html
 	cp doc/*.pdf release/$(fullname)/doc
 	cd release && tar czf $(fullname).tar.gz $(fullname)
-
-

@@ -1,11 +1,6 @@
 USE_OCAMLFIND = true
 BYTE_ENABLED = true
 
-# Set this to "true" on the command-line for invoking amqp_gen
-if $(not $(defined REGENERATE))
-    REGENERATE = false
-    export
-
 GEN[] =
    netamqp_methods_0_9.ml
    netamqp_methods_0_9.mli
@@ -23,35 +18,29 @@ FILES[] =
    netamqp_basic
    netamqp_tx
 
-OCAMLPACKS += rpc
+OCAMLPACKS[] += rpc pcre
 
 LocalOCamlGeneratedFiles($(GEN))
 
 .PHONY: clean
 
 clean:
-        rm -f *.o *.a *.cm* *~ *.annot 
+        rm -f *.o *.a *.cm* *~ *.annot
 	rm -f amqp_gen $(GEN)
 
 .DEFAULT: $(OCamlLibrary netamqp, $(FILES))
 
-$(GEN):
-    section rule
-	if $(REGENERATE)
-	    $(GEN): amqp_gen amqp0-9-1.xml
-		./amqp_gen
-	else
-	    $(GEN): $(addprefix generated/,$(GEN))
-	        cp $(addprefix generated/,$(GEN)) .
+$(GEN): amqp_gen amqp0-9-1.xml
+	./amqp_gen
 
 
 amqp_gen: amqp_gen.ml
-	ocamlfind ocamlc -package pxp -linkpkg -o amqp_gen amqp_gen.ml
+	ocamlfind ocamlc -package pxp,pcre -linkpkg -o amqp_gen amqp_gen.ml
 
-doc/html: $(addsuffix .mli, $(FILES)) intro.txt
+doc/html: $(addsuffix .mli, $(FILES))
 	rm -rf doc/html
 	mkdir doc/html
-	ocamlfind ocamldoc -html -stars -intro intro.txt -d doc/html \
+	ocamlfind ocamldoc -html -stars -d doc/html \
 	  -package "$(OCAMLPACKS)" -css-style style.css \
 	  -t "Netamqp - AMQP client" \
 	  $(addsuffix .mli, $(FILES))
