@@ -1,0 +1,10 @@
+doc/html
+*.o
+*.a
+*.cm?
+*.omc
+*~
+.omakedb*
+netamqp.cmxa
+netamqp_methods_0_9.ml*
+amqp_gen
