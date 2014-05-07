@@ -312,19 +312,14 @@ object(self)
     let rec optimize_items items =
       (* Merge adjacent short items (only for strings) *)
       match items with
-	| (`String(s1,p1,l1) as i1) :: (`String(s2,p2,l2) as i2) :: items' ->
-	    if l1 < 256 && l2 < 256 then (
-	      let b = Buffer.create (l1+l2) in
-	      Buffer.add_substring b s1 p1 l1;
-	      Buffer.add_substring b s2 p2 l2;
-	      gather_items b items'
-	    )
-	    else
-	      i1 :: optimize_items (i2 :: items')
+	| `String(s1,p1,l1) :: `String(s2,p2,l2) :: items' when l1 < 256 && l2 < 256 ->
+	  let b = Buffer.create (2048) in
+	  Buffer.add_substring b s1 p1 l1;
+	  Buffer.add_substring b s2 p2 l2;
+	  gather_items b items'
 	| other :: items' ->
 	    other :: optimize_items items'
-	| [] ->
-	    []
+	| [] -> []
 
     and gather_items b items =
       match items with
