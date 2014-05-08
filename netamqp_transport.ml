@@ -307,29 +307,23 @@ object(self)
 	    )
 	    else
 	      let (s,pos) = ms#as_string in
-	      `String(s,pos+r,l-r) in
+	      `String(s,pos+r,l-r)
+    in
 
-    let rec optimize_items items =
-      (* Merge adjacent short items (only for strings) *)
-      match items with
-	| `String(s1,p1,l1) :: `String(s2,p2,l2) :: items' when l1 < 256 && l2 < 256 ->
-	  let b = Buffer.create (2048) in
-	  Buffer.add_substring b s1 p1 l1;
-	  Buffer.add_substring b s2 p2 l2;
-	  gather_items b items'
-	| other :: items' ->
-	    other :: optimize_items items'
-	| [] -> []
-
-    and gather_items b items =
-      match items with
-	| `String(s,p,l) :: items' when l < 256 ->
-	    Buffer.add_substring b s p l;
-	    gather_items b items'
-	| _ ->
-	    `String(Buffer.contents b, 0, Buffer.length b) ::
-	      optimize_items items in
-
+    let rec merge_items = function
+      | (None, `String(s1, p1, l1) :: `String(s2, p2, l2) :: items) when l1 < 256 && l2 < 256 ->
+	let b = Buffer.create (2048) in
+	Buffer.add_substring b s1 p1 l1;
+	Buffer.add_substring b s2 p2 l2;
+	merge_items (Some b, items)
+      | (Some b, `String(s, p, l) :: items) when l < 256 ->
+        Buffer.add_substring b s p l;
+        merge_items (Some b, items)
+      | (Some b, items) ->
+        `String(Buffer.contents b, 0, Buffer.length b) :: merge_items (None, items)
+      | (None, item :: items) -> item :: merge_items (None, items)
+      | (None, []) -> []
+    in
 
     let item_is_empty =
       function
@@ -405,8 +399,7 @@ object(self)
 
     let write mstrings =
       est_writing_next
-	(optimize_items
-	   (List.map (fun ms -> item_of_mstring ms 0) mstrings)) in
+	(merge_items (None, List.map (fun ms -> item_of_mstring ms 0) mstrings)) in
 
     match frame.frame_type with
       | `Proto_header ->
