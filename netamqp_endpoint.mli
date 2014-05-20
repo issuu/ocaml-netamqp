@@ -522,6 +522,11 @@ val create_method_exception :
          exn
   (** Returns a [Method_exception] *)
 
+val heartbeat : endpoint -> unit
+  (** Send a hearbeat frame to the host. The message is used to keep connections open
+      and to kill stale connections
+  *)
+
 module Debug : sig
   val enable : bool ref
 end

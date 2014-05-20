@@ -1205,6 +1205,23 @@ let announce_e ep =
 
 let announce_s ep = sync announce_e ep
 
+let heartbeat ep =
+  check_up ep;
+  let q =
+    try Hashtbl.find ep.out_q 0
+    with
+    | Not_found ->
+      failwith "Netamqp_endpoint.async_c2s_e: this channel is disabled"
+  in
+  let frames = [ Netamqp_methods_0_9.encode_heartbeat_message () ] in
+  let sg = function
+    | None -> Printf.printf "Heartbeat sent!\n%!"
+    | Some e -> raise e
+  in
+  Queue.add (frames, sg) q;
+  output_thread ep
+
+
 let async_c2s_e ep (m : async_client_to_server_method_t) d_opt ch =
   if ch < 0 || ch > 65535 then
     invalid_arg "Netamqp_endpoint.async_c2s_e: bad channel";
