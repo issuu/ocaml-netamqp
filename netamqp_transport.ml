@@ -338,31 +338,19 @@ object(self)
        *)
       let mplex_when_done exn_opt n = (* n bytes written *)
 	self # timer_event `Stop `W;
-	match exn_opt with
-	  | None ->
-	      ( match item with
-		  | `Memory(m,p,l,ms,q) ->
-		      let l' = l-n in
-		      if l' > 0 then
-			est_writing (`Memory(m,p+n,l',ms,q)) remaining
-		      else (
-			let mlen = ms#length in
-			if q < mlen then
-			  let item' = item_of_mstring ms q in
-			  est_writing item' remaining
-			else
-			  est_writing_next remaining
-		      )
-		  | `String(s,p,l) ->
-		      let l' = l-n in
-		      if l' > 0 then
-			est_writing (`String(s,p+n,l')) remaining
-		      else
-			est_writing_next remaining
-	      )
-	  | Some Uq_engines.Cancelled ->
+	match exn_opt, item with
+	  | None, `Memory(m,p,l,ms,q) when l-n > 0 ->
+            est_writing (`Memory(m,p+n,l-n,ms,q)) remaining
+          | None, `Memory(_,_,_,ms,q) when q < ms#length ->
+            let item' = item_of_mstring ms q in
+            est_writing item' remaining
+	  | None, `String(s,p,l) when l-n > 0 ->
+	    est_writing (`String(s,p+n,l-n)) remaining
+          | None, _ ->
+            est_writing_next remaining
+	  | Some Uq_engines.Cancelled, _ ->
 	      ()  (* ignore *)
-	  | Some error ->
+	  | Some error, _ ->
 	      if not aborted then
 		when_done (`Error error)
       in
