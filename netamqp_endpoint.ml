@@ -954,7 +954,7 @@ let connect ep =
 	| `Custom f ->
 	    f() in
     ep.conn_eng <- Some conn_eng;
-    if ep.timeout >= 0.0 then (
+    if ep.timeout > 0.0 then (
       let g = Unixqueue.new_group ep.esys in
       Unixqueue.once ep.esys g ep.timeout
 	(fun () ->
