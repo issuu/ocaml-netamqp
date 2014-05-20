@@ -958,7 +958,7 @@ let connect ep =
       let g = Unixqueue.new_group ep.esys in
       Unixqueue.once ep.esys g ep.timeout
 	(fun () ->
-	   dlog "connect times out";
+	   dlog "connect timed out";
 	   abort_and_propagate_error ep Timeout
 	);
       ep.conn_tmo_group <- Some g;
