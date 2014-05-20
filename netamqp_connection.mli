@@ -15,7 +15,7 @@
 
     In this implementation, connection management is separated from
     endpoint management. The latter is done in {!Netamqp_endpoint},
-    and describes the AMQP client on a lower level. 
+    and describes the AMQP client on a lower level.
  *)
 
 
@@ -46,7 +46,7 @@ type locale_preference =
 
 val create : Netamqp_endpoint.endpoint -> connection
   (** Create the connection management object for the endpoint. The endpoint
-      should be in [`Off] state. The returned connection object is 
+      should be in [`Off] state. The returned connection object is
       still closed, and may now be opened.
    *)
 
@@ -87,7 +87,7 @@ val is_open : connection -> bool
    *)
 
 (*
-val status : connection -> 
+val status : connection ->
       (int * string * Netamqp_endpoint.method_type_t) option
  *)
 
@@ -95,7 +95,7 @@ val status : connection ->
 
 val plain_auth : string -> string -> auth_method
   (** [plain_auth username password]: use [PLAIN] authentication.
-      
+
       Note that username and password are not encrypted on the wire!
    *)
 

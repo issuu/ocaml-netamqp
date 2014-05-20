@@ -298,6 +298,5 @@ let close_s c =
 let plain_auth user pw =
   ("PLAIN", user, pw)
 
-
 let endpoint c = c.ep
 let event_system c = Netamqp_endpoint.event_system c.ep

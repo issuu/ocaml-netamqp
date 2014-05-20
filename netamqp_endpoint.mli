@@ -20,7 +20,7 @@ type connector =
 type transport_layer =
     [ `TCP of connector
     (* `SSL of ... *)
-    | `Custom of 
+    | `Custom of
 	(unit -> Netamqp_transport.amqp_multiplex_controller Uq_engines.engine)
     ]
   (** Which transport layer to choose:
@@ -112,7 +112,7 @@ type sync_client_initiated_method_t =
   (** The subset of methods:
       - Synchronous methods where the client sends the first message
    *)
-     
+
 type sync_server_initiated_method_t =
     [ `AMQP_0_9 of Netamqp_methods_0_9.sync_server_initiated_method_t ]
   (** The subset of methods:
@@ -231,10 +231,10 @@ val state : endpoint -> state
   (** Reports the connection state *)
 
 val state_change_e : endpoint -> state Uq_engines.engine
-  (** The engine finishes at the next [state] change. 
+  (** The engine finishes at the next [state] change.
 
       It is possible to immediately create another [state_change_e] when
-      the previous engine finishes. This allows it to continuously watch 
+      the previous engine finishes. This allows it to continuously watch
       for state changes.
    *)
 
@@ -248,13 +248,13 @@ val protocol : endpoint -> protocol
 
 (** {2 Using an activated endpoint} *)
 
-(** The following methods must only be called when the state is
+(** The fencode_heartbeat_message()ollowing methods must only be called when the state is
     [`Connected], i.e. after calling [connect].
  *)
 
 val getsockname : endpoint -> Netamqp_transport.sockaddr
 val getpeername : endpoint -> Netamqp_transport.sockaddr
-  (** Get the names of the own socket and the peer socket, resp. 
+  (** Get the names of the own socket and the peer socket, resp.
       These functions fail if the endpoint socket is not connected
       at the moment of checking.
    *)
@@ -267,7 +267,7 @@ val disable_channel : endpoint -> channel -> unit
       Channel 0 is always enabled.
 
       Disabling a channel immediately drops all unsent messages except
-      those on the priority queue. Also, 
+      those on the priority queue. Also,
       pending synchronous calls will get the exception
       {!Netamqp_types.Method_dropped}. All registrations
       for the channel are deleted.
@@ -365,11 +365,11 @@ val register_sync_s2c : endpoint ->
                         (unit -> unit) ->   (* post action *)
                           unit
   (** Synchronous calls initiated by the server:
-      Registers that the callback function is called 
+      Registers that the callback function is called
       when the server sends a method of the given type.
 
       Normally, the callback returns [Some r] where [r] is the
-      response method. The callback is also allowed to return [None] 
+      response method. The callback is also allowed to return [None]
       in case of an error.
       Some additional reaction should be provided, though, e.g. by requesting a
       connection close.
@@ -393,7 +393,7 @@ val async_c2s : endpoint ->
                 data option ->
                 channel ->
                   unit
-  (** Asynchronous calls from the client: This function just 
+  (** Asynchronous calls from the client: This function just
       sends the given method to the server. Note that the actual
       transmission is controlled by the event loop and does not
       happen immediately.
@@ -422,7 +422,7 @@ val async_c2s_s : endpoint ->
    *)
 
 val register_async_s2c : endpoint ->
-                         async_server_to_client_method_type_t -> 
+                         async_server_to_client_method_type_t ->
                          channel ->
                      (async_server_to_client_method_t -> data option -> unit) ->
                            unit
@@ -475,9 +475,9 @@ val register_async_s2c : endpoint ->
 
 
     The following codes should be used for injecting errors from outside:
-    - {!Netamqp_types.Method_exception}: for all exceptions coming from the 
+    - {!Netamqp_types.Method_exception}: for all exceptions coming from the
       server
-    - {!Netamqp_types.Protocol_violation}: for all hard violations of the 
+    - {!Netamqp_types.Protocol_violation}: for all hard violations of the
       protocol, especially those that lead to a shutdown
     - {!Netamqp_types.Method_dropped}: when a synchronous call cannot
       be continued because
@@ -516,7 +516,7 @@ val listen_for_errors : endpoint -> channel option -> (exn -> bool) -> unit
       the listener is disabled.
    *)
 
-val create_method_exception : 
+val create_method_exception :
        protocol ->
        class_id:int -> meth_id:int -> reply_code:int -> reply_text:string ->
          exn
