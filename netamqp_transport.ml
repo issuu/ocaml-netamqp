@@ -36,6 +36,7 @@ object
   method event_system : Unixqueue.event_system
   method getsockname : sockaddr
   method getpeername : sockaddr
+  method getfd : Unix.file_descr
   method transport_type : transport_type
   method set_max_frame_size : int -> unit
   method eff_max_frame_size : int
@@ -77,7 +78,7 @@ let mk_mstring s =
 exception Continue of (unit -> unit)
 
 
-class tcp_amqp_multiplex_controller sockname peername
+class tcp_amqp_multiplex_controller sockname peername fd
         (mplex : Uq_engines.multiplex_controller) esys
       : amqp_multiplex_controller =
   let () =
@@ -105,6 +106,7 @@ object(self)
   method event_system = esys
   method getsockname = sockname
   method getpeername = peername
+  method getfd = fd
   method transport_type = `TCP
 
   method set_max_frame_size size =
@@ -529,5 +531,5 @@ let tcp_amqp_multiplex_controller ?(close_inactive_descr=true)
     Uq_engines.create_multiplex_controller_for_connected_socket
       ~close_inactive_descr ~preclose
       fd esys in
-  new tcp_amqp_multiplex_controller sockname peername mplex esys
+  new tcp_amqp_multiplex_controller sockname peername fd mplex esys
 ;;

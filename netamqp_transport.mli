@@ -41,6 +41,11 @@ object
       * is connected. (Fails otherwise.)
      *)
 
+  method getfd : Unix.file_descr
+    (** The actual unix file descriptor for the connection. Only available if the socket
+      * is connected. (Fails otherwise.)
+     *)
+
   method transport_type : transport_type
     (** The transport type *)
 
