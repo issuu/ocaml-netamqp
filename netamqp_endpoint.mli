@@ -522,10 +522,18 @@ val create_method_exception :
          exn
   (** Returns a [Method_exception] *)
 
-val heartbeat : endpoint -> unit
-  (** Send a hearbeat frame to the host. The message is used to keep connections open
-      and to kill stale connections
+val heartbeat_e : endpoint -> unit Uq_engines.engine
+  (** Send a heartbeat frame to the host. The message is used to keep connections open
+      and to kill stale connections.
+      Async
   *)
+
+val heartbeat_s : endpoint -> unit
+  (** Send a heartbeat frame to the host. The message is used to keep connections open
+      and to kill stale connections.
+      Sync
+  *)
+
 
 module Debug : sig
   val enable : bool ref
