@@ -1,6 +1,6 @@
 .PHONY: all doc install release
 
-version = 1.0
+version = 1.1
 fullname = netamqp-$(version)
 
 all:
@@ -10,7 +10,7 @@ doc:
 	omake doc/html
 
 install:
-	ocamlfind install netamqp \
+	ocamlfind install netamqp2 \
 		META *.mli *.cmi netamqp.cma amqp0-9-1.xml \
 		-optional netamqp.cmxa netamqp.a \
 		-patch-version "$(version)"
