@@ -259,6 +259,11 @@ val getpeername : endpoint -> Netamqp_transport.sockaddr
       at the moment of checking.
    *)
 
+val getfd : endpoint -> Unix.file_descr
+  (** Get the filedescriptor for the connection.
+      This function fails if the endpoint socket is not connected at the moment of checking
+   *)
+
 val enable_channel : endpoint -> channel -> unit
 val disable_channel : endpoint -> channel -> unit
   (** Enable/disable channels. Only an enabled channel can be used for

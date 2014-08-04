@@ -1104,6 +1104,13 @@ let getpeername ep =
     | Some mplex ->
 	mplex#getpeername
 
+let getfd ep =
+  match mplex_opt ep with
+    | None ->
+        failwith "Netamqp_endpoint.getpeername: not connected"
+    | Some mplex ->
+        mplex#getfd
+
 let drop_frames ep =
   ep.drop_frames <- true
 
