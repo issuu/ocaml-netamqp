@@ -1,6 +1,6 @@
 .PHONY: all doc install release
 
-version = 1.1
+version = 1.1.1
 fullname = netamqp-$(version)
 
 all:
