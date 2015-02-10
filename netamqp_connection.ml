@@ -152,7 +152,7 @@ let open_e c auth_l lp vhost =
 		  let mplex_eff_frame_max =
 		    Netnumber.uint4_of_int (eff_max_frame_size c.ep) in
 		  let eff_frame_max =
-		    if frame_max = null_uint4 || 
+		    if frame_max = null_uint4 ||
 		       (Netnumber.gt_uint4 frame_max mplex_eff_frame_max)
 		    then
 		      mplex_eff_frame_max
@@ -162,7 +162,7 @@ let open_e c auth_l lp vhost =
 		  Netlog.logf `Info
 		    "AMQP: connection-tune-ok frame_max=%Ld"
 		    (Netnumber.int64_of_uint4 eff_frame_max);
-		  `AMQP_0_9(`Connection_tune_ok(ch_max, eff_frame_max, 
+		  `AMQP_0_9(`Connection_tune_ok(ch_max, eff_frame_max,
 						heartbeat))
 	       )
 	 | _ ->
@@ -172,7 +172,7 @@ let open_e c auth_l lp vhost =
        (* After tune, we have to open: *)
        let open_e =
 	 sync_c2s_e
-	   c.ep (`AMQP_0_9 (`Connection_open(c.vhost, "", false))) 
+	   c.ep (`AMQP_0_9 (`Connection_open(c.vhost, "", false)))
 	   None 0 300.0 in
        Uq_engines.when_state
 	 ~is_done:(fun (resp_m, _) ->
