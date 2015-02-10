@@ -1,7 +1,14 @@
-.PHONY: all doc install release
+.PHONY: build all doc install release clean postconf tag
 
 version = 1.1.1
 fullname = netamqp-$(version)
+
+trunk = https://godirepo.camlcity.org/svn/lib-netamqp/trunk
+tag = https://godirepo.camlcity.org/svn/lib-netamqp/tags/netamqp-$(version)
+
+
+build:
+	omake
 
 all:
 	omake
@@ -14,6 +21,13 @@ install:
 		META *.mli *.cmi netamqp.cma amqp0-9-1.xml \
 		-optional netamqp.cmxa netamqp.a \
 		-patch-version "$(version)"
+
+clean:
+	omake clean
+
+postconf:
+	echo 'pkg_version="$(version)"' >>setup.data
+
 
 # Note that the files netamqp_method_0_9.ml* are generated. For running
 # the generator we need PXP, though, so by distributing the generated

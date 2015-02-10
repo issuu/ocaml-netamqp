@@ -58,8 +58,14 @@ let when_down ep f =
   watch()
 
 
+let split_re = Netstring_str.regexp "[ \t\r\n]+"
+
+let split s =
+  Netstring_str.split split_re s
+
+
 let null_uint4 =
-  Rtypes.uint4_of_int 0
+  Netnumber.uint4_of_int 0
 
 let open_e c auth_l lp vhost =
   if c.state <> `Closed then
@@ -96,7 +102,7 @@ let open_e c auth_l lp vhost =
 		  Netlog.logf `Info
 		    "AMQP: connection-start mechs=%s locales=%s"
 		    mechs_s locales;
-		  let mechs_l = Pcre.split mechs_s in
+		  let mechs_l = split mechs_s in
 		  let (auth_s,user,pw) =
 		    try
 		      List.find
@@ -106,7 +112,7 @@ let open_e c auth_l lp vhost =
 		      | Not_found ->
 			  raise(Error "No suitable authentication methods") in
 		  c.auth_s <- auth_s;
-		  let loc_l = Pcre.split locales in
+		  let loc_l = split locales in
 		  let loc =
 		    match lp with
 		      | `Pref l ->
@@ -140,23 +146,23 @@ let open_e c auth_l lp vhost =
 		  Netlog.logf `Info
 		    "AMQP: connection-tune \
                      ch_max=%d frame_max=%Ld heartbeat=%d"
-		    ch_max (Rtypes.int64_of_uint4 frame_max) heartbeat;
+		    ch_max (Netnumber.int64_of_uint4 frame_max) heartbeat;
 		  c.state <- `Tune_ok;
 		  (* Maybe we have to lower the max frame size: *)
 		  let mplex_eff_frame_max =
-		    Rtypes.uint4_of_int (eff_max_frame_size c.ep) in
+		    Netnumber.uint4_of_int (eff_max_frame_size c.ep) in
 		  let eff_frame_max =
-		    if frame_max = null_uint4 ||
-		       (Rtypes.gt_uint4 frame_max mplex_eff_frame_max)
+		    if frame_max = null_uint4 || 
+		       (Netnumber.gt_uint4 frame_max mplex_eff_frame_max)
 		    then
 		      mplex_eff_frame_max
 		    else
 		      frame_max in
-		  set_max_frame_size c.ep (Rtypes.int_of_uint4 eff_frame_max);
+		  set_max_frame_size c.ep (Netnumber.int_of_uint4 eff_frame_max);
 		  Netlog.logf `Info
 		    "AMQP: connection-tune-ok frame_max=%Ld"
-		    (Rtypes.int64_of_uint4 eff_frame_max);
-		  `AMQP_0_9(`Connection_tune_ok(ch_max, eff_frame_max,
+		    (Netnumber.int64_of_uint4 eff_frame_max);
+		  `AMQP_0_9(`Connection_tune_ok(ch_max, eff_frame_max, 
 						heartbeat))
 	       )
 	 | _ ->
@@ -166,7 +172,7 @@ let open_e c auth_l lp vhost =
        (* After tune, we have to open: *)
        let open_e =
 	 sync_c2s_e
-	   c.ep (`AMQP_0_9 (`Connection_open(c.vhost, "", false)))
+	   c.ep (`AMQP_0_9 (`Connection_open(c.vhost, "", false))) 
 	   None 0 300.0 in
        Uq_engines.when_state
 	 ~is_done:(fun (resp_m, _) ->

@@ -9,6 +9,18 @@
 
 open Netamqp_types
 open Printf
+
+
+module Globals = 
+  struct
+    let host = "localhost" (* "localhost" *)
+    let exchange = "amq.direct"
+    let qname = "test_rtupdate"
+
+    (* The routing key says how the queue can be reached (the address): *)
+    let routing_key = qname ^ "_routing_key"
+  end
+
 open Globals
 
 let () =
@@ -68,13 +80,14 @@ let sender file_name =
 	 "field" definitions, each corresponding to one of the following
 	 arguments.
       *)
+      eprintf "*** About to send next line...\n%!";
       let msg =
 	Netamqp_basic.create_message
 	  ~content_type:"text/plain"
 	  ~content_encoding:"ISO-8859-1"
 	  ~headers: [ "foo", `Longstr "foofield";
 		      "bar", `Bool true;
-		      "baz", `Sint4 (Rtypes.int4_of_int 0xdd);
+		      "baz", `Sint4 (Netnumber.int4_of_int 0xdd);
 		    ]
 	  ~delivery_mode:1   (* non-persistent *)
 	  [Netamqp_rtypes.mk_mstring (* (sprintf "Loop %d" n) *) msg] in

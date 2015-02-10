@@ -19,15 +19,15 @@ object
   method user_id : string option
   method app_id : string option
   method amqp_header : Netamqp_endpoint.props_t
-  method amqp_body : Xdr_mstring.mstring list
+  method amqp_body : Netxdr_mstring.mstring list
 end
 
 type 'a get_message =
-  out:( delivery_tag : Rtypes.uint8 ->
+  out:( delivery_tag : Netnumber.uint8 ->
         redelivered : bool ->
         exchange : Netamqp_exchange.exchange_name ->
         routing_key:string ->
-        message_count:Rtypes.uint4 ->
+        message_count:Netnumber.uint4 ->
         message ->
          'a) ->
   unit ->
@@ -102,7 +102,7 @@ let qos_e ~channel ?(prefetch_size=0) ?(prefetch_count=0) ?(global=false) () =
     channel
     (`AMQP_0_9
        (`Basic_qos
-	  (Rtypes.uint4_of_int prefetch_size,
+	  (Netnumber.uint4_of_int prefetch_size,
 	   prefetch_count,
 	   global
 	  )))

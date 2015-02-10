@@ -129,12 +129,14 @@ object
 
   method inactivate : unit -> unit
     (** Inactivates the connection immediately, and releases any resources
-      * the controller is responsible for (e.g. closes file descriptors).
+      * the controller is responsible for (e.g. closes file descriptors). 
       * Note that this is more than
       * cancelling all pending operations and shutting the connection down.
       * However, the details of this method are implementation-defined.
       * Callbacks are not invoked.
      *)
+
+  method tls_session_props : Nettls_support.tls_session_props option
 
 end
 
@@ -142,6 +144,7 @@ end
 val tcp_amqp_multiplex_controller :
        ?close_inactive_descr:bool ->
        ?preclose:(unit -> unit) ->
+       ?tls_config:((module Netsys_crypto_types.TLS_CONFIG) * string option) ->
        Unix.file_descr -> Unixqueue.event_system ->
          amqp_multiplex_controller
   (** The multiplex controller for stream encapsulation
@@ -150,6 +153,9 @@ val tcp_amqp_multiplex_controller :
         inactivated
       - [preclose]: This function is called just before the descriptor
         is closed.
+      - [tls_config:(config,hostname)]: If set, a TLS connection is created
+        using [config]. The [hostname] is the name of the server (for checking
+        the name in the certificate).
    *)
 
 (** {1 Debugging} *)

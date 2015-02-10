@@ -6,7 +6,7 @@ type channel = int
     (** AMQP channels have numbers 0-65535. Channel 0 has a special function *)
     
 type transport_type =
-    [ `TCP | `SSL ]
+    [ `TCP | `TLS ]
 
 type frame_type =
     [ `Proto_header | `Method | `Header | `Body | `Heartbeat ]
@@ -14,7 +14,7 @@ type frame_type =
 type frame =
     { frame_type : frame_type;
       frame_channel : channel;
-      frame_payload : Xdr_mstring.mstring list;
+      frame_payload : Netxdr_mstring.mstring list;
     }
   (** A frame is the transport unit on the wire.
 

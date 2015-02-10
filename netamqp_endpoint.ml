@@ -21,7 +21,8 @@ type connector =
 
 type transport_layer =
     [ `TCP of connector
-    | `Custom of
+    | `TLS of connector * (module Netsys_crypto_types.TLS_CONFIG)
+    | `Custom of 
 	(unit -> Netamqp_transport.amqp_multiplex_controller Uq_engines.engine)
     ]
 
@@ -90,7 +91,7 @@ type method_type_t =
     [ `AMQP_0_9 of Netamqp_methods_0_9.method_type_t ]
 
 type data =
-    props_t * Xdr_mstring.mstring list
+    props_t * Netxdr_mstring.mstring list
 
 type reg =
     < reg_callback : any_server_to_client_method_t -> data option -> unit;
@@ -106,7 +107,7 @@ type build =
       mutable props : props_t option;
       mutable exp_size : int64;
       mutable cur_size : int64;
-      data : Xdr_mstring.mstring Queue.t
+      data : Netxdr_mstring.mstring Queue.t
     }
     (* build [data] from frame pieces *)
 
@@ -170,6 +171,12 @@ let mplex_opt ep =
 	    | _ -> None
 	)
     | None -> None
+
+let mplex ep =
+  match mplex_opt ep with
+    | None -> failwith "Netamqp_endpoint.mplex"
+    | Some mplex -> mplex
+
 
 let string_of_state =
   function
@@ -567,12 +574,23 @@ let dispatch_method ep (m : any_server_to_client_method_t) d_opt ch =
   )
 
 
+let check_complete ep frame b props =
+  if b.cur_size = b.exp_size then (
+    Hashtbl.remove ep.in_build frame.frame_channel;
+    let q =
+      Queue.fold (fun acc ms -> ms :: acc) [] b.data in
+    let d =
+      (props, q) in
+    dispatch_method ep b.meth (Some d) frame.frame_channel
+  )
+
+
 let handle_frame_0_9 ep frame =
   (* AMQP-0-9-specific version *)
   dlogr
     (fun () ->
-       let n = Xdr_mstring.length_mstrings frame.frame_payload in
-       let s = Xdr_mstring.prefix_mstrings frame.frame_payload (min n 200) in
+       let n = Netxdr_mstring.length_mstrings frame.frame_payload in
+       let s = Netxdr_mstring.prefix_mstrings frame.frame_payload (min n 200) in
        sprintf "decode_message type=%s ch=%d payload=%s"
 	 ( match frame.frame_type with
 	     | `Method -> "method"
@@ -632,6 +650,7 @@ let handle_frame_0_9 ep frame =
 	      b.props <- Some (`AMQP_0_9 props);
 	      b.exp_size <- size;
 	      dlog "good content header";
+              check_complete ep frame b (`AMQP_0_9 props);
 	    with
 	      | Not_found ->
 		  dlog "unexpected content header";
@@ -644,21 +663,14 @@ let handle_frame_0_9 ep frame =
 	      if b.props = None then raise Not_found; (* bad *)
 	      let props =
 		match b.props with Some p -> p | None -> assert false in
-	      let l = Xdr_mstring.length_mstrings mstrings in
+	      let l = Netxdr_mstring.length_mstrings mstrings in
 	      b.cur_size <- Int64.add b.cur_size (Int64.of_int l);
 	      if b.cur_size > b.exp_size then raise Not_found;
 	      dlog "good content body frame";
 	      List.iter
 		(fun ms -> Queue.add ms b.data)
 		mstrings;
-	      if b.cur_size = b.exp_size then (
-		Hashtbl.remove ep.in_build frame.frame_channel;
-		let q =
-		  Queue.fold (fun acc ms -> ms :: acc) [] b.data in
-		let d =
-		  (props, q) in
-		dispatch_method ep b.meth (Some d) frame.frame_channel
-	      )
+              check_complete ep frame b props;
 	    with
 	      | Not_found ->
 		  dlog "unexpected content body, or size mismatch";
@@ -771,31 +783,33 @@ and output_start ep =
 	       procedure can be continued.
 	     *)
 	    ep.out_active <- false;
-
+	    
 	    dlog "nothing to output";
-
+	    
 	    maybe_disconnect ep
 	  )
 	)
+  
+and output_next ep mplex (frame,is_sent) =
+  dlog "output_next";
+  mplex # start_writing
+    ~when_done:(fun r ->
+		  ep.out_active <- false;
+		  match r with
+		    | `Ok() ->
+			(* Success. Try to write the next frame: *)
+			is_sent None;
+			output_start ep
+		    | `Error e ->
+			(* Error *)
+			is_sent (Some e);
+			abort_and_propagate_error ep e
+	       )
+    frame
 
-and output_next ep mplex = function
-  | (x :: xs, is_sent) ->
-    dlog "output_next_frame";
-    mplex # start_writing
-      ~when_done:(function
-      | `Ok () ->
-        output_next ep mplex (xs, is_sent)
-      | `Error e -> is_sent (Some e);
-        abort_and_propagate_error ep e
-      ) x
-  | ([], is_sent) ->
-    ep.out_active <- false;
-    is_sent None;
-    output_start ep
 
-
-let shared_sub_mstring (ms : Xdr_mstring.mstring)
-                       sub_pos sub_len : Xdr_mstring.mstring =
+let shared_sub_mstring (ms : Netxdr_mstring.mstring)
+                       sub_pos sub_len : Netxdr_mstring.mstring =
   (* Returns an mstring that accesses the substring of ms at sub_pos
      with length sub_len. The returned mstring shares the representation
      with ms
@@ -832,7 +846,10 @@ let split_mstrings l max_len =
     if rem' > 0 then
       ms0 :: transform ms (pos+len) rem'
     else
-      [ms0] in
+      if len > 0 then
+        [ms0]
+      else
+        [] in
 
   List.flatten
     (List.map (fun ms -> transform ms 0 ms#length) l)
@@ -849,7 +866,7 @@ let mk_frames_0_9 ep (m : Netamqp_methods_0_9.method_t) d_opt ch =
 	  ( match prop with
 	      | `AMQP_0_9 prop' ->
 		  let size =
-		    Int64.of_int (Xdr_mstring.length_mstrings body) in
+		    Int64.of_int (Netxdr_mstring.length_mstrings body) in
 		  let h_frame =
 		    Netamqp_methods_0_9.encode_message
 		      (`Header(prop', size)) ch in
@@ -894,6 +911,11 @@ let mk_frames ep m d_opt ch =
 (* connect logic                                                      *)
 (**********************************************************************)
 
+let get_tls_config ep =
+  match ep.transport_layer with
+    | `TLS(_,c) -> Some c
+    | _ -> None
+
 let connect ep =
   let do_it =
     match ep.state with
@@ -906,10 +928,11 @@ let connect ep =
     dlog "connect";
     let conn_eng =
       match ep.transport_layer with
-	| `TCP conn ->
+	| `TCP conn
+        | `TLS(conn,_) ->
 	    let spec, host_opt =
 	      match conn with
-		| `Sockaddr (Unix.ADDR_INET(ip,port)) ->
+		| `Sockaddr (Unix.ADDR_INET(ip,port)) -> 
 		    `Sock_inet(Unix.SOCK_STREAM, ip, port), None
 		| `Sockaddr (Unix.ADDR_UNIX path) ->
 		    `Sock_unix(Unix.SOCK_STREAM, path), None
@@ -918,16 +941,21 @@ let connect ep =
 		| `Implied ->
 		    failwith "Netamqp_endpoint.connect: `Implied is not a \
                               valid address for TCP" in
-	    Uq_engines.connector
-	      (`Socket(spec, Uq_engines.default_connect_options))
+	    Uq_client.connect_e
+	      (`Socket(spec, Uq_client.default_connect_options))
 	      ep.esys
 	    ++ (fun st ->
 		  match st with
 		    | `Socket(fd, _) ->
 			dlog "socket connection established";
+                        let tls_config =
+                          match get_tls_config ep with
+                            | None -> None
+                            | Some c -> Some(c,host_opt) in
 			let mplex =
 			  Netamqp_transport.tcp_amqp_multiplex_controller
 			    ~close_inactive_descr:true
+                            ?tls_config
 			    fd ep.esys in
 			( match ep.conn_tmo_group with
 			    | None -> ()
@@ -1413,3 +1441,14 @@ let register_sync_s2c ep (mtype : sync_server_initiated_method_type_t) ch cb
     try Hashtbl.find ep.in_tab (ch,mtype')
     with Not_found -> [] in
   Hashtbl.replace ep.in_tab (ch,mtype') (reg :: l)
+
+let tls_session_props ep =
+  match ep.conn_eng with
+    | Some e ->
+        ( match e#state with
+            | `Done mplex ->
+                mplex # tls_session_props
+            | _ ->
+                None
+        )
+    | None -> None

@@ -1,7 +1,7 @@
 type channel = int
 
 type transport_type =
-    [ `TCP | `SSL ]
+    [ `TCP | `TLS ]
 
 type frame_type =
     [ `Proto_header | `Method | `Header | `Body | `Heartbeat ]
@@ -9,7 +9,7 @@ type frame_type =
 type frame =
     { frame_type : frame_type;
       frame_channel : channel;
-      frame_payload : Xdr_mstring.mstring list
+      frame_payload : Netxdr_mstring.mstring list
     }
 
 exception Decode_error of string
@@ -48,6 +48,6 @@ let () =
 	     sprintf "<frame t=%s ch=%d #payload=%d>"
 	       (string_of_frame_type f.frame_type)
 	       f.frame_channel
-	       (Xdr_mstring.length_mstrings f.frame_payload)
+	       (Netxdr_mstring.length_mstrings f.frame_payload)
 	 | _ -> "_"
     )

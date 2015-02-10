@@ -8,8 +8,8 @@ type queue_name = string
 
 type 'a declare_result =
     out:( queue_name:queue_name ->
-          message_count:Rtypes.uint4 ->
-	  consumer_count:Rtypes.uint4 ->
+          message_count:Netnumber.uint4 ->
+	  consumer_count:Netnumber.uint4 ->
             'a) ->
     unit ->
       'a
@@ -150,13 +150,13 @@ val purge_e :
               queue:queue_name ->
               ?no_wait:bool ->
               unit ->
-                Rtypes.uint4 Uq_engines.engine
+                Netnumber.uint4 Uq_engines.engine
 val purge_s :
               channel:Netamqp_channel.channel_obj -> 
               queue:queue_name ->
               ?no_wait:bool ->
               unit ->
-                Rtypes.uint4 
+                Netnumber.uint4 
   (** This function removes all messages from a queue which are not awaiting
       acknowledgment.
 
@@ -175,7 +175,7 @@ val delete_e :
               ?if_empty:bool ->
               ?no_wait:bool ->
               unit ->
-                Rtypes.uint4 Uq_engines.engine
+                Netnumber.uint4 Uq_engines.engine
 val delete_s :
               channel:Netamqp_channel.channel_obj -> 
               queue:queue_name ->
@@ -183,7 +183,7 @@ val delete_s :
               ?if_empty:bool ->
               ?no_wait:bool ->
               unit ->
-                Rtypes.uint4 
+                Netnumber.uint4 
   (** This function deletes the queue.
 
       Arguments:

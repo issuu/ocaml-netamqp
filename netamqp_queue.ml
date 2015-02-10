@@ -7,15 +7,15 @@ type queue_name = string
 
 type 'a declare_result =
     out:( queue_name:queue_name ->
-          message_count:Rtypes.uint4 ->
-	  consumer_count:Rtypes.uint4 ->
+          message_count:Netnumber.uint4 ->
+	  consumer_count:Netnumber.uint4 ->
             'a) ->
     unit ->
       'a
 
 
 let uint4_0 =
-  Rtypes.uint4_of_int 0
+  Netnumber.uint4_of_int 0
 
 let declare_passively_e ~channel ~queue ?(no_wait=false) () =
   let esys = Netamqp_channel.event_system channel in
@@ -153,7 +153,7 @@ let delete_e ~channel ~queue ?(if_unused=false) ?(if_empty=false)
   ++ (fun (m, _) ->
 	match m with
 	  | `AMQP_0_9 (`Queue_delete_ok mc) ->
-	      eps_e (`Done (mc : Rtypes.uint4)) esys
+	      eps_e (`Done (mc : Netnumber.uint4)) esys
 	  | _ ->
 	      assert false
      )

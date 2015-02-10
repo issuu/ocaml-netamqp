@@ -48,7 +48,7 @@ object
   method amqp_header : Netamqp_endpoint.props_t
     (** The complete message header (all of the above fields in once) *)
 
-  method amqp_body : Xdr_mstring.mstring list
+  method amqp_body : Netxdr_mstring.mstring list
     (** The message body *)
 
 end
@@ -67,7 +67,7 @@ val create_message :
       ?typ : string ->
       ?user_id : string ->
       ?app_id : string ->
-      Xdr_mstring.mstring list ->
+      Netxdr_mstring.mstring list ->
 	message
   (** Creates a new message. See the class type {!Netamqp_basic.message}
       for documentation of the optional header fields.
@@ -228,7 +228,7 @@ val on_return :
 val on_deliver :
               channel:Netamqp_channel.channel_obj -> 
               cb:(consumer_tag:string ->
-                  delivery_tag:Rtypes.uint8 ->
+                  delivery_tag:Netnumber.uint8 ->
                   redelivered:bool ->
                   exchange:Netamqp_exchange.exchange_name ->
                   routing_key:string ->
@@ -255,11 +255,11 @@ val on_deliver :
    *)
 
 type 'a get_message =
-  out:( delivery_tag : Rtypes.uint8 ->
+  out:( delivery_tag : Netnumber.uint8 ->
         redelivered : bool ->
         exchange : Netamqp_exchange.exchange_name ->
         routing_key:string ->
-        message_count:Rtypes.uint4 ->
+        message_count:Netnumber.uint4 ->
         message ->
          'a) ->
   unit ->
@@ -326,13 +326,13 @@ val get_s :
 
 val ack_e :
               channel:Netamqp_channel.channel_obj -> 
-              delivery_tag:Rtypes.uint8 ->
+              delivery_tag:Netnumber.uint8 ->
               ?multiple:bool ->
               unit ->
                 unit Uq_engines.engine
 val ack_s :
               channel:Netamqp_channel.channel_obj -> 
-              delivery_tag:Rtypes.uint8 ->
+              delivery_tag:Netnumber.uint8 ->
               ?multiple:bool ->
               unit ->
                 unit 
@@ -349,13 +349,13 @@ val ack_s :
 
 val reject_e :
               channel:Netamqp_channel.channel_obj -> 
-              delivery_tag:Rtypes.uint8 ->
+              delivery_tag:Netnumber.uint8 ->
               requeue:bool ->
               unit ->
                 unit Uq_engines.engine
 val reject_s :
               channel:Netamqp_channel.channel_obj -> 
-              delivery_tag:Rtypes.uint8 ->
+              delivery_tag:Netnumber.uint8 ->
               requeue:bool ->
               unit ->
                 unit

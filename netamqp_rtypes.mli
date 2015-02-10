@@ -1,4 +1,4 @@
-(** Support for remote types not already covered by [Rtypes] *)
+(** Support for remote types not already covered by [Netnumber] *)
 
 (** {2 Integers} *)
 
@@ -39,8 +39,8 @@ val encode_longstr : string -> (string list * int)
  *)
 
 type ('table_field,'table) table_field_standard =
-    [ `Sint4 of Rtypes.int4
-    | `Decimal of int * Rtypes.uint4
+    [ `Sint4 of Netnumber.int4
+    | `Decimal of int * Netnumber.uint4
     | `Longstr of string  (* up to 4G chars *)
     | `Timestamp of float  (* only int precision *)
     | `Table of 'table
@@ -58,9 +58,9 @@ type ('table_field,'table) table_field_problematic =
     [ `Uint1 of int
     | `Sint2 of int
     | `Uint2 of int
-    | `Uint4 of Rtypes.uint4
-    | `Sint8 of Rtypes.int8
-    | `Uint8 of Rtypes.uint8
+    | `Uint4 of Netnumber.uint4
+    | `Sint8 of Netnumber.int8
+    | `Uint8 of Netnumber.uint8
     | `Shortstr of string (* up to 255 chars *)
     | `Array of 'table_field list
     ]
@@ -82,4 +82,4 @@ val encode_table : table -> (string list * int)
 
 val unsafe_rev_concat : string list -> int -> string
 
-val mk_mstring : string -> Xdr_mstring.mstring
+val mk_mstring : string -> Netxdr_mstring.mstring

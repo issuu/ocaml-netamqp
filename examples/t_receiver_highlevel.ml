@@ -12,6 +12,17 @@
 open Netamqp_types
 open Printf
 
+module Globals = 
+  struct
+    let host = "localhost" (* "localhost" *)
+    let exchange = "amq.direct"
+    let qname = "test_rtupdate"
+
+    (* The routing key says how the queue can be reached (the address): *)
+    let routing_key = qname ^ "_routing_key"
+  end
+
+
 let () =
   Netamqp_endpoint.Debug.enable := true;
   Netamqp_transport.Debug.enable := true
@@ -22,7 +33,7 @@ let esys = Unixqueue.create_unix_event_system()
 (* We assume there is a RabbitMQ on localhost, listening on the default
    port:
  *)
-let p = `TCP(`Inet("localhost", Netamqp_endpoint.default_port))
+let p = `TCP(`Inet(Globals.host, Netamqp_endpoint.default_port))
 let ep = Netamqp_endpoint.create p (`AMQP_0_9 `One) esys
 let c = Netamqp_connection.create ep
 
@@ -34,11 +45,6 @@ let auth = Netamqp_connection.plain_auth "guest" "guest"
 (* For this application we use channel 1 on the created connection: *)
 let channel = 1
 
-(* The name of the queue: *)
-let qname = "test_xy"
-
-(* The routing key says how the queue can be reached (the address): *)
-let routing_key = qname ^ "_routing_key"
 
 
 (* Call the following function to start the receiver. The function does
@@ -73,17 +79,18 @@ let receiver() =
      name qname. We enable the auto-delete feature - the queue is deleted
      when the last accessor is closed.
    *)
+  eprintf "*** Trying to declare queue\n%!";
   let resp_fn =
     Netamqp_queue.declare_s
       ~channel:co
-      ~queue:qname
+      ~queue:Globals.qname
       ~auto_delete:true
       () in
   let resp_qn =
     resp_fn
       ~out:(fun ~queue_name ~message_count ~consumer_count -> queue_name)
       () in
-  assert(resp_qn = qname);
+  assert(resp_qn = Globals.qname);
   
   eprintf "*** Queue declared!\n%!";
 
@@ -94,11 +101,12 @@ let receiver() =
      meaning that all content messages with the given routing_key are
      added to the queue.
    *)
+  eprintf "*** Trying to bind to queue\n%!";
   Netamqp_queue.bind_s
     ~channel:co
-    ~queue:qname
-    ~exchange:Netamqp_exchange.amq_direct
-    ~routing_key
+    ~queue:Globals.qname
+    ~exchange:Globals.exchange
+    ~routing_key:Globals.routing_key
     ();
 
   eprintf "*** Queue binding established!\n%!";
@@ -124,7 +132,7 @@ let receiver() =
 
      The body is not a string but a list of mstring. The mstring object
      is an abstraction defined in the Ocamlnet library "rpc" 
-     (Xdr_mstring). It is generally used for large binary data strings.
+     (Netxdr_mstring). It is generally used for large binary data strings.
      It has two interesting features: First, it can not only be backed
      by normal strings to store the data blob but also by bigarrays of
      char. (There is special support in Ocamlnet for these bigarrays,
@@ -133,7 +141,7 @@ let receiver() =
      data copying in the ocaml wrapper.) The second feature is that
      an mstring can also pick any substring of the base representation
      as content. In general, the mstring abstraction avoids string
-     copying. There are a number of helper functions in Xdr_mstring
+     copying. There are a number of helper functions in Netxdr_mstring
      and also in Netamqp_rtypes.
 
      Each AMQP queue message needs to be acknowledged (unless this is
@@ -148,12 +156,12 @@ let receiver() =
              msg ->
 
 	       eprintf "*** Got message!%!";
-	       let n = Xdr_mstring.length_mstrings msg#amqp_body in
+	       let n = Netxdr_mstring.length_mstrings msg#amqp_body in
 	       eprintf "*** DATA: %s\n" 
 		 (if n > 100 then
 		    sprintf "[size: %d]" n
 		  else
-		    Xdr_mstring.concat_mstrings msg#amqp_body
+		    Netxdr_mstring.concat_mstrings msg#amqp_body
 		 );
 	       (* ACK this message. Note that we cannot use ack_s here
 		  because the event loop is already running (as this is
@@ -177,7 +185,7 @@ let receiver() =
   let consumer_tag =
     Netamqp_basic.consume_s
       ~channel:co
-      ~queue:qname
+      ~queue:Globals.qname
       () in
 
   eprintf "*** Created consumer\n%!";
@@ -190,6 +198,8 @@ let receiver() =
   
   co
 
+
+let _ = receiver ()
 
 
 

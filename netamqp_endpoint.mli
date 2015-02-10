@@ -19,8 +19,8 @@ type connector =
 
 type transport_layer =
     [ `TCP of connector
-    (* `SSL of ... *)
-    | `Custom of
+    | `TLS of connector * (module Netsys_crypto_types.TLS_CONFIG)
+    | `Custom of 
 	(unit -> Netamqp_transport.amqp_multiplex_controller Uq_engines.engine)
     ]
   (** Which transport layer to choose:
@@ -160,11 +160,11 @@ type props_t =
  *)
 
 type data =
-    props_t * Xdr_mstring.mstring list
+    props_t * Netxdr_mstring.mstring list
   (** Content data as pair of properties and a string. The string is
       represented as list of [mstring], an abstraction over several
       possible representations of byte arrays provided by Ocamlnet
-      (see the [rpc] library for [Xdr_mstring]).
+      (see the [rpc] library for [Netxdr_mstring]).
 
       Data received from the server is often returned as a true list
       with more than one element. Each element represents a frame on
@@ -248,7 +248,7 @@ val protocol : endpoint -> protocol
 
 (** {2 Using an activated endpoint} *)
 
-(** The fencode_heartbeat_message()ollowing methods must only be called when the state is
+(** The following methods must only be called when the state is
     [`Connected], i.e. after calling [connect].
  *)
 
@@ -539,6 +539,8 @@ val heartbeat_s : endpoint -> unit
       Sync
   *)
 
+val tls_session_props : endpoint -> Nettls_support.tls_session_props option
+  (** TLS session properties *)
 
 module Debug : sig
   val enable : bool ref

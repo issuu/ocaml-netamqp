@@ -54,12 +54,14 @@ object
   method cancel_shutting_down : unit -> unit
   method set_timeout : notify:(unit -> unit) -> float -> unit
   method inactivate : unit -> unit
+  method tls_session_props : Nettls_support.tls_session_props option
 end
 
 module Debug = struct
   let enable = ref false
 end
 
+let dlog = Netlog.Debug.mk_dlog "Netamqp_transport" Debug.enable
 let dlogr = Netlog.Debug.mk_dlogr "Netamqp_transport" Debug.enable
 
 let () =
@@ -107,7 +109,9 @@ object(self)
   method getsockname = sockname
   method getpeername = peername
   method getfd = fd
-  method transport_type = `TCP
+  method transport_type =
+    if mplex#tls_session_props = None then `TCP else `TLS
+  method tls_session_props = mplex # tls_session_props
 
   method set_max_frame_size size =
     if size < 255 then
@@ -223,13 +227,13 @@ object(self)
 		  let channel =
 		    Netamqp_rtypes.read_uint2_unsafe s 1 in
 		  let size =
-		    Rtypes.read_uint4_unsafe s 3 in
+		    Netnumber.BE.read_uint4_unsafe s 3 in
 		  let max_size =
-		    Rtypes.uint4_of_int (max_frame_size-8) in
-		  if Rtypes.gt_uint4 size max_size then
+		    Netnumber.uint4_of_int (max_frame_size-8) in
+		  if Netnumber.gt_uint4 size max_size then
 		    raise(Error "Frame too long");
 		  let size =
-		    Rtypes.int_of_uint4 size in
+		    Netnumber.int_of_uint4 size in
 		  rd_mode <- `Payload(frame_type, channel, size, 7)
 		);
 		raise (Continue process)
@@ -393,14 +397,14 @@ object(self)
 
     match frame.frame_type with
       | `Proto_header ->
-	  let s = Xdr_mstring.concat_mstrings frame.frame_payload in
+	  let s = Netxdr_mstring.concat_mstrings frame.frame_payload in
 	  if String.length s <> 3 then
 	    raise(Error "The `Proto_header frame requires a 3-byte payload");
 	  let u = "AMQP\000" ^ s in
 	  write [mk_mstring u]
       | _ ->
 	  (* Create frame header and frame end mstrings: *)
-	  let l = Xdr_mstring.length_mstrings frame.frame_payload in
+	  let l = Netxdr_mstring.length_mstrings frame.frame_payload in
 	  if l > max_frame_size then (
 	    dlogr
 	      (fun () -> sprintf "l=%d max_frame_size=%d" l max_frame_size);
@@ -416,7 +420,7 @@ object(self)
 	      | `Proto_header -> assert false in
 	  s.[0] <- c0;
 	  Netamqp_rtypes.write_uint2 s 1 frame.frame_channel;
-	  Rtypes.write_uint4 s 3 (Rtypes.uint4_of_int l);
+	  Netnumber.BE.write_uint4 s 3 (Netnumber.uint4_of_int l);
 	  let header = mk_mstring s in
 	  let trailer = mk_mstring "\xCE" in
 	  write (header :: (frame.frame_payload @ [trailer]))
@@ -504,8 +508,10 @@ end
 
 
 let tcp_amqp_multiplex_controller ?(close_inactive_descr=true)
-                                  ?(preclose=fun()->()) fd esys =
-  let sockname =
+                                  ?(preclose=fun()->()) 
+                                  ?tls_config
+                                  fd esys =
+  let sockname = 
     try
       `Sockaddr(Unix.getsockname fd)
     with
@@ -515,9 +521,17 @@ let tcp_amqp_multiplex_controller ?(close_inactive_descr=true)
       `Sockaddr(Netsys.getpeername fd)
     with
       | Unix.Unix_error(_,_,_) -> `Implied in
-  let mplex =
-    Uq_engines.create_multiplex_controller_for_connected_socket
+  let mplex1 = 
+    Uq_multiplex.create_multiplex_controller_for_connected_socket
       ~close_inactive_descr ~preclose
       fd esys in
+  let mplex =
+    match tls_config with
+      | None -> mplex1
+      | Some(c, host_opt) ->
+          Uq_multiplex.tls_multiplex_controller
+            ~role:`Client
+            ~peer_name:host_opt
+            c mplex1 in
   new tcp_amqp_multiplex_controller sockname peername fd mplex esys
 ;;

@@ -1,0 +1,29 @@
+2015-01-18  Gerd Stolpmann  <gerd@e130.lan.sumadev.de>
+
+	* Release 1.1.1
+
+	* Tweak _oasis
+
+2015-01-13  Gerd Stolpmann  <gerd@e130.lan.sumadev.de>
+
+	* Release 1.1
+
+	* Support for _oasis
+
+	* Implementing TLS connector
+
+	* Fixing a bug in the message encoder affecting messages with
+	  zero-size body
+
+	* Porting to Ocamlnet-4 (and dropping support for Ocamlnet-3)
+
+2013-08-15  Gerd Stolpmann  <gerd@e130>
+
+	* Netamqp_connection: avoiding the dependency on Pcre.
+
+	* Netamqp_queue.declare_e: fix: in previous versions it
+	  was forgotten to include [arguments] into the message.
+	  This is now done. (Hendrik Tews)
+
+THIS CHANGELOG STARTS AT RELEASE: netamqp-1.0
+

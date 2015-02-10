@@ -1,10 +1,12 @@
+(* $Id: netamqp_rtypes.ml 4 2015-01-13 15:02:07Z gerd $ *)
+
 open Netamqp_types
 
 type uint2 = int
 
 type ('table_field,'table) table_field_standard =
-    [ `Sint4 of Rtypes.int4
-    | `Decimal of int * Rtypes.uint4
+    [ `Sint4 of Netnumber.int4
+    | `Decimal of int * Netnumber.uint4
     | `Longstr of string  (* up to 4G chars *)
     | `Timestamp of float  (* only int precision *)
     | `Table of 'table
@@ -22,9 +24,9 @@ type ('table_field,'table) table_field_problematic =
     [ `Uint1 of int
     | `Sint2 of int
     | `Uint2 of int
-    | `Uint4 of Rtypes.uint4
-    | `Sint8 of Rtypes.int8
-    | `Uint8 of Rtypes.uint8
+    | `Uint4 of Netnumber.uint4
+    | `Sint8 of Netnumber.int8
+    | `Uint8 of Netnumber.uint8
     | `Shortstr of string (* up to 255 chars *)
     | `Array of 'table_field list
     ]
@@ -90,13 +92,22 @@ let encode_shortstr_straight s =
   let p = String.make 1 (Char.unsafe_chr n) in
   ( [p; s] (* ! *), n+1 )
 
+let encode_shortstr_for_field s =
+  let n = String.length s in
+  if n > 255 then raise(Encode_error "String too long (shortstr)");
+  let p = String.create 2 in
+  String.unsafe_set p 0 's';
+  String.unsafe_set p 1 (Char.unsafe_chr n);
+  ( [p; s], n+2 )
+
+
 let decode_longstr_nocopy s c l =
   assert(String.length s >= l);
   if !c >= l - 3 then raise(Decode_error "Message too short");
-  let n_rt = Rtypes.read_uint4_unsafe s !c in
+  let n_rt = Netnumber.BE.read_uint4_unsafe s !c in
   let n =
-    try Rtypes.int_of_uint4 n_rt
-    with Rtypes.Cannot_represent _ ->
+    try Netnumber.int_of_uint4 n_rt
+    with Netnumber.Cannot_represent _ ->
       raise(Decode_error "Cannot represent field because it is too long") in
   if !c >= l - n - 3 then raise(Decode_error "Message too short");
   let p = !c+4 in
@@ -112,20 +123,20 @@ let decode_longstr s c l =
 let encode_longstr s =
   let n = String.length s in
   let n_rt =
-    try Rtypes.uint4_of_int n
+    try Netnumber.uint4_of_int n
     with _ -> raise(Encode_error "String too long (longstr)") in
-  let p = Rtypes.uint4_as_string n_rt in
+  let p = Netnumber.BE.uint4_as_string n_rt in
   ( [s; p], n+4 )
 
 
 let encode_longstr_for_field s =
   let n = String.length s in
   let n_rt =
-    try Rtypes.uint4_of_int n
+    try Netnumber.uint4_of_int n
     with _ -> raise(Encode_error "String too long (longstr)") in
   let p = String.create 5 in
   String.unsafe_set p 0 'S';
-  Rtypes.write_uint4_unsafe p 1 n_rt;
+  Netnumber.BE.write_uint4_unsafe p 1 n_rt;
   ( [p; s], n+5 )
 
 
@@ -184,46 +195,46 @@ and decode_field s c l : table_field =
  *)
     | 'I' ->
 	expect 4;
-	let x = Rtypes.read_int4_unsafe s !c in
+	let x = Netnumber.BE.read_int4_unsafe s !c in
 	let v = `Sint4 x in
 	c := !c + 4;
 	v
 (*
     | 'i' ->
 	expect 4;
-	let x = Rtypes.read_uint4_unsafe s !c in
+	let x = Netnumber.BE.read_uint4_unsafe s !c in
 	let v = `Uint4 x in
 	c := !c + 4;
 	v
     | 'L' ->
 	expect 8;
-	let x = Rtypes.read_int8_unsafe s !c in
+	let x = Netnumber.BE.read_int8_unsafe s !c in
 	let v = `Sint8 x in
 	c := !c + 8;
 	v
     | 'l' ->
 	expect 8;
-	let x = Rtypes.read_uint8_unsafe s !c in
+	let x = Netnumber.BE.read_uint8_unsafe s !c in
 	let v = `Uint8 x in
 	c := !c + 8;
 	v
  *)
     | 'f' ->
 	expect 4;
-	let x = Rtypes.float_of_fp4(Rtypes.read_fp4 s !c) in
+	let x = Netnumber.float_of_fp4(Netnumber.BE.read_fp4 s !c) in
 	let v = `Float x in
 	c := !c + 4;
 	v
     | 'd' ->
 	expect 8;
-	let x = Rtypes.float_of_fp8(Rtypes.read_fp8 s !c) in
+	let x = Netnumber.float_of_fp8(Netnumber.BE.read_fp8 s !c) in
 	let v = `Double x in
 	c := !c + 8;
 	v
     | 'D' ->
 	expect 5;
 	let scale = Char.code s.[!c] in
-	let x = Rtypes.read_uint4_unsafe s (!c+1) in
+	let x = Netnumber.BE.read_uint4_unsafe s (!c+1) in
 	let v = `Decimal(scale,x) in
 	c := !c + 5;
 	v
@@ -233,7 +244,7 @@ and decode_field s c l : table_field =
 	let v = `Shortstr x in
 	v
  *)
-    | 'S' ->
+    | 'S' -> 
 	let x = decode_longstr s c l in
 	let v = `Longstr x in
 	v
@@ -245,9 +256,9 @@ and decode_field s c l : table_field =
  *)
     | 'T' ->
 	expect 8;
-	let x = Rtypes.read_uint8_unsafe s !c in
+	let x = Netnumber.BE.read_uint8_unsafe s !c in
 	let t =
-	  try Int64.to_float(Rtypes.int64_of_uint8 x)
+	  try Int64.to_float(Netnumber.int64_of_uint8 x)
 	  with _ ->
 	    raise(Decode_error "Timestamp out of supported range") in
 	let v = `Timestamp t in
@@ -261,6 +272,16 @@ and decode_field s c l : table_field =
 	`Null
     | _ ->
 	raise(Decode_error "Bad field type in table")
+	  
+and decode_array s c l =
+  let (p,n) = decode_longstr_nocopy s c l in
+  let c' = ref p in
+  let acc = ref [] in
+  while !c' < !c do
+    let v = decode_field s c' !c in
+    acc := v :: !acc
+  done;
+  List.rev !acc
 
 and decode_table s c l =
   let (p, _) = decode_longstr_nocopy s c l in
@@ -310,30 +331,30 @@ let rec encode_field field =
      | `Sint4 x ->
 	let s = String.create 5 in
 	String.unsafe_set s 0 'I';
-	Rtypes.write_int4_unsafe s 1 x;
+	Netnumber.BE.write_int4_unsafe s 1 x;
 	([s], 5)
 (*
     | `Uint4 x ->
 	let s = String.create 5 in
 	String.unsafe_set s 0 'i';
-	Rtypes.write_uint4_unsafe s 1 x;
+	Netnumber.BE.write_uint4_unsafe s 1 x;
 	([s], 5)
     | `Sint8 x ->
 	let s = String.create 9 in
 	String.unsafe_set s 0 'L';
-	Rtypes.write_int8_unsafe s 1 x;
+	Netnumber.BE.write_int8_unsafe s 1 x;
 	([s], 9)
     | `Uint8 x ->
 	let s = String.create 9 in
 	String.unsafe_set s 0 'l';
-	Rtypes.write_uint8_unsafe s 1 x;
+	Netnumber.BE.write_uint8_unsafe s 1 x;
 	([s], 9)
  *)
     | `Float x ->
-	let s = "f" ^ Rtypes.fp4_as_string (Rtypes.fp4_of_float x) in
+	let s = "f" ^ Netnumber.BE.fp4_as_string (Netnumber.fp4_of_float x) in
 	([s], 5)
     | `Double x ->
-	let s = "d" ^ Rtypes.fp8_as_string (Rtypes.fp8_of_float x) in
+	let s = "d" ^ Netnumber.BE.fp8_as_string (Netnumber.fp8_of_float x) in
 	([s], 9)
     | `Decimal(scale, x) ->
 	if scale < 0 || scale > 255 then
@@ -341,7 +362,7 @@ let rec encode_field field =
 	let s = String.create 6 in
 	String.unsafe_set s 0 'D';
 	String.unsafe_set s 1 (Char.unsafe_chr scale);
-	Rtypes.write_uint4_unsafe s 2 x;
+	Netnumber.BE.write_uint4_unsafe s 2 x;
 	([s], 6)
 (*
     | `Shortstr x ->
@@ -364,15 +385,15 @@ let rec encode_field field =
 	    ) in
 	let s = String.create 5 in
 	String.unsafe_set s 0 'A';
-	Rtypes.write_uint4_unsafe s 1 (Rtypes.uint4_of_int !len);
+	Netnumber.BE.write_uint4_unsafe s 1 (Netnumber.uint4_of_int !len);
 	( s :: x', !len + 5 )
  *)
     | `Timestamp x ->
 	let s = String.create 9 in
 	String.unsafe_set s 0 'T';
-	Rtypes.write_uint8_unsafe s 1
+	Netnumber.BE.write_uint8_unsafe s 1
 	  ( try
-	      (Rtypes.uint8_of_int64 (Int64.of_float x))
+	      (Netnumber.uint8_of_int64 (Int64.of_float x))
 	    with
 	      | _ -> raise(Encode_error "Cannot represent timestamp")
 	  );
@@ -396,7 +417,7 @@ and encode_table_straight x =
 	 )
 	 x
       ) in
-  let p = Rtypes.uint4_as_string (Rtypes.uint4_of_int !n) in
+  let p = Netnumber.BE.uint4_as_string (Netnumber.uint4_of_int !n) in
   (p :: l, !n + 4)
 
 
@@ -406,7 +427,7 @@ let encode_table x =
 
 
 let mk_mstring s =
-  Xdr_mstring.string_based_mstrings # create_from_string
+  Netxdr_mstring.string_based_mstrings # create_from_string
     s 0 (String.length s) false
 
 

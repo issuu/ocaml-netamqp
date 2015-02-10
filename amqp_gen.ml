@@ -343,8 +343,8 @@ let transl_meth_name_1 cls meth_name =
 let prim_repr =
   [ `Octet, "int  (* 0..255 *)";
     `Short, "int  (* 0..65535 *)";
-    `Long,  "Rtypes.uint4";
-    `Longlong, "Rtypes.uint8";
+    `Long,  "Netnumber.uint4";
+    `Longlong, "Netnumber.uint8";
     `Bit, "bool";
     `Shortstr, "string  (* up to 255 chars *)";
     `Longstr, "string  (* up to 4G chars *)";
@@ -646,7 +646,7 @@ let output_message_type_definition spec f =
   fprintf f "type message_t = [\n";
   fprintf f "  | `Method of method_t\n";
   fprintf f "  | `Header of props_t * int64 (* size *)\n";
-  fprintf f "  | `Body of Xdr_mstring.mstring list\n";
+  fprintf f "  | `Body of Netxdr_mstring.mstring list\n";
   fprintf f "  | `Heartbeat\n";
   fprintf f "  | `Proto_header of string\n";
   fprintf f "]\n\n"
@@ -719,12 +719,12 @@ let output_field_decoder fields f indent =
 		    emit (offset+2) true false fields'
 		| `Long ->
 		    fprintf f
-		      "Rtypes.read_uint4_unsafe _s (!_c+%d) in\n"
+		      "Netnumber.BE.read_uint4_unsafe _s (!_c+%d) in\n"
 		      offset;
 		    emit (offset+4) true false fields'
 		| `Longlong ->
 		    fprintf f
-		      "Rtypes.read_uint8_unsafe _s (!_c+%d) in\n"
+		      "Netnumber.BE.read_uint8_unsafe _s (!_c+%d) in\n"
 		      offset;
 		    emit (offset+8) true false fields'
 		| `Bit ->
@@ -734,8 +734,8 @@ let output_field_decoder fields f indent =
 		    emit (offset+adv) true (adv=0) fields'
 		| `Timestamp ->
 		    fprintf f
-		      "Int64.to_float(Rtypes.int64_of_uint8\
-                         (Rtypes.read_uint8_unsafe _s (!_c+%d))) in\n"
+		      "Int64.to_float(Netnumber.int64_of_uint8\
+                         (Netnumber.BE.read_uint8_unsafe _s (!_c+%d))) in\n"
 		      offset;
 		    emit (offset+8) true false fields'
 		| _ ->
@@ -775,7 +775,7 @@ let output_method_decoder spec f =
   fprintf f
     "let decode_method_message _frame =\n";
   fprintf f
-    "  let _s = Xdr_mstring.concat_mstrings \
+    "  let _s = Netxdr_mstring.concat_mstrings \
           _frame.Netamqp_types.frame_payload in\n";
   fprintf f
     "  let _l = String.length _s in\n";
@@ -879,7 +879,7 @@ let output_prop_decoder fields f indent =
 		    fprintf f
 		      "%s    _c := _c0 + 4;\n" istr;
 		    fprintf f
-		      "%s    Some(Rtypes.read_uint4_unsafe _s _c0)\n"
+		      "%s    Some(Netnumber.BE.read_uint4_unsafe _s _c0)\n"
 		      istr;
 		| `Longlong ->
 		    fprintf f
@@ -887,7 +887,7 @@ let output_prop_decoder fields f indent =
 		    fprintf f
 		      "%s    _c := _c0 + 8;\n" istr;
 		    fprintf f
-		      "%s    Some(Rtypes.read_uint8_unsafe _s _c0)\n"
+		      "%s    Some(Netnumber.BE.read_uint8_unsafe _s _c0)\n"
 		      istr;
 		| `Bit ->
 		    assert false (* already handled above *)
@@ -897,8 +897,8 @@ let output_prop_decoder fields f indent =
 		    fprintf f
 		      "%s    _c := _c0 + 8;\n" istr;
 		    fprintf f
-		      "%s    Some(Int64.to_float(Rtypes.int64_of_uint8\
-                               (Rtypes.read_uint8_unsafe _s _c0)))\n"
+		      "%s    Some(Int64.to_float(Netnumber.int64_of_uint8\
+                               (Netnumber.BE.read_uint8_unsafe _s _c0)))\n"
 		      istr;
 		| `Shortstr ->
 		    fprintf f 
@@ -926,7 +926,7 @@ let output_header_decoder spec f =
   fprintf f
     "let decode_header_message _frame =\n";
   fprintf f
-    "  let _s = Xdr_mstring.concat_mstrings \
+    "  let _s = Netxdr_mstring.concat_mstrings \
           _frame.Netamqp_types.frame_payload in\n";
   fprintf f
     "  let _l = String.length _s in\n";
@@ -935,7 +935,7 @@ let output_header_decoder spec f =
   fprintf f
     "  let _class_index = Netamqp_rtypes.read_uint2_unsafe _s 0 in\n";
   fprintf f
-    "  let _size_rt = Rtypes.read_uint8_unsafe _s 4 in\n";
+    "  let _size_rt = Netnumber.BE.read_uint8_unsafe _s 4 in\n";
   fprintf f
     "  let _flags = Netamqp_rtypes.read_uint2_unsafe _s 12 in\n";
   fprintf f 
@@ -974,7 +974,7 @@ let output_header_decoder spec f =
 	    ""
 	 );
        fprintf f
-	 ",Rtypes.int64_of_uint8 _size_rt)\n"
+	 ",Netnumber.int64_of_uint8 _size_rt)\n"
     )
     spec.spec_classes;
 
@@ -1048,12 +1048,12 @@ let output_field_encoder fields f indent =
 		    emit (offset+2) true false fields'
 		| `Long ->
 		    fprintf f
-		      "%sRtypes.write_uint4_unsafe _s %d %s;\n"
+		      "%sNetnumber.BE.write_uint4_unsafe _s %d %s;\n"
 		      istr offset n;
 		    emit (offset+4) true false fields'
 		| `Longlong ->
 		    fprintf f
-		      "%sRtypes.write_uint8_unsafe _s %d %s;\n"
+		      "%sNetnumber.BE.write_uint8_unsafe _s %d %s;\n"
 		      istr offset n;
 		    emit (offset+8) true false fields'
 		| `Bit ->
@@ -1064,10 +1064,10 @@ let output_field_encoder fields f indent =
 		    emit (offset+adv) true (adv=0) fields'
 		| `Timestamp ->
 		    fprintf f
-		      "%slet _x = Rtypes.uint8_of_int64(Int64.of_float %s) in\n"
+		      "%slet _x = Netnumber.uint8_of_int64(Int64.of_float %s) in\n"
 		      istr n;
 		    fprintf f
-		      "%sRtypes.write_uint8_unsafe _s %d _x;\n"
+		      "%sNetnumber.BE.write_uint8_unsafe _s %d _x;\n"
 		      istr offset;
 		    emit (offset+8) true false fields'
 		| _ ->
@@ -1220,7 +1220,7 @@ let output_prop_encoder fields f indent =
 		  fprintf f
 		    "%s let _s = String.create 4 in\n" istr6;
 		  fprintf f
-		    "%s Rtypes.write_uint4_unsafe _s 0 _x;\n"
+		    "%s Netnumber.BE.write_uint4_unsafe _s 0 _x;\n"
 		    istr6;
 		  fprintf f
 		    "%s (_s :: _acc, _acc_len+4) in\n" istr6
@@ -1228,7 +1228,7 @@ let output_prop_encoder fields f indent =
 		  fprintf f
 		      "%s let _s = String.create 8 in\n" istr6;
 		  fprintf f
-		    "%s Rtypes.write_uint8_unsafe _s 0 _x;\n" istr6;
+		    "%s Netnumber.BE.write_uint8_unsafe _s 0 _x;\n" istr6;
 		  fprintf f
 		    "%s (_s :: _acc, _acc_len+8) in\n" istr6
 	      | `Bit ->
@@ -1238,10 +1238,10 @@ let output_prop_encoder fields f indent =
 		    "%s let _s = String.create 8 in\n" istr6;
 		  fprintf f
 		    "%s let _x' = \
-                       Rtypes.uint8_of_int64(Int64.of_float _x) in\n"
+                       Netnumber.uint8_of_int64(Int64.of_float _x) in\n"
 		    istr6;
 		  fprintf f
-		    "%s Rtypes.write_uint8_unsafe _s 0 _x';\n"
+		    "%s Netnumber.BE.write_uint8_unsafe _s 0 _x';\n"
 		    istr6;
 		  fprintf f
 		    "%s (_s :: _acc, _acc_len+8) in\n" istr6
@@ -1303,8 +1303,8 @@ let output_header_encoder spec f =
        fprintf f
 	 "          String.unsafe_set _s 1 '\\x%02x';\n" (Char.code c1);
        fprintf f
-	 "          Rtypes.write_uint8_unsafe _s 4 \
-                      (Rtypes.uint8_of_int64 _size);\n";
+	 "          Netnumber.BE.write_uint8_unsafe _s 4 \
+                      (Netnumber.uint8_of_int64 _size);\n";
        if cls.class_props = [] then
 	 fprintf f
 	   "          _s\n"
@@ -1413,7 +1413,7 @@ let output_decoder f =
     "   | `Heartbeat -> `Heartbeat\n";
   fprintf f
     "   | `Proto_header -> `Proto_header \
-          (Xdr_mstring.concat_mstrings frame.Netamqp_types.frame_payload)\n\n"
+          (Netxdr_mstring.concat_mstrings frame.Netamqp_types.frame_payload)\n\n"
 
 
 let output_encoder f =
@@ -1453,7 +1453,7 @@ let output_mli spec =
   fprintf f "val encode_header_message : props_t -> int64 -> int -> Netamqp_types.frame\n\n";
 
   fprintf f "val encode_heartbeat_message : unit -> Netamqp_types.frame\n\n";
-  fprintf f "val encode_body_message : Xdr_mstring.mstring list -> int -> Netamqp_types.frame\n\n";
+  fprintf f "val encode_body_message : Netxdr_mstring.mstring list -> int -> Netamqp_types.frame\n\n";
   fprintf f "val encode_proto_header_message : string -> Netamqp_types.frame\n\n";
 
   fprintf f "val decode_message : Netamqp_types.frame -> message_t\n\n";
