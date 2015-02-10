@@ -74,7 +74,7 @@ let mem_size = Netsys_mem.pool_block_size Netsys_mem.default_pool
 let fallback_size = 16384   (* for I/O via Unix *)
 
 let mk_mstring s =
-  Xdr_mstring.string_based_mstrings # create_from_string
+  Netxdr_mstring.string_based_mstrings # create_from_string
     s 0 (String.length s) false
 
 exception Continue of (unit -> unit)
@@ -508,10 +508,10 @@ end
 
 
 let tcp_amqp_multiplex_controller ?(close_inactive_descr=true)
-                                  ?(preclose=fun()->()) 
+                                  ?(preclose=fun()->())
                                   ?tls_config
                                   fd esys =
-  let sockname = 
+  let sockname =
     try
       `Sockaddr(Unix.getsockname fd)
     with
@@ -521,7 +521,7 @@ let tcp_amqp_multiplex_controller ?(close_inactive_descr=true)
       `Sockaddr(Netsys.getpeername fd)
     with
       | Unix.Unix_error(_,_,_) -> `Implied in
-  let mplex1 = 
+  let mplex1 =
     Uq_multiplex.create_multiplex_controller_for_connected_socket
       ~close_inactive_descr ~preclose
       fd esys in

@@ -22,7 +22,7 @@ type connector =
 type transport_layer =
     [ `TCP of connector
     | `TLS of connector * (module Netsys_crypto_types.TLS_CONFIG)
-    | `Custom of 
+    | `Custom of
 	(unit -> Netamqp_transport.amqp_multiplex_controller Uq_engines.engine)
     ]
 
@@ -171,12 +171,6 @@ let mplex_opt ep =
 	    | _ -> None
 	)
     | None -> None
-
-let mplex ep =
-  match mplex_opt ep with
-    | None -> failwith "Netamqp_endpoint.mplex"
-    | Some mplex -> mplex
-
 
 let string_of_state =
   function
@@ -783,29 +777,27 @@ and output_start ep =
 	       procedure can be continued.
 	     *)
 	    ep.out_active <- false;
-	    
+
 	    dlog "nothing to output";
-	    
+
 	    maybe_disconnect ep
 	  )
 	)
-  
-and output_next ep mplex (frame,is_sent) =
-  dlog "output_next";
-  mplex # start_writing
-    ~when_done:(fun r ->
-		  ep.out_active <- false;
-		  match r with
-		    | `Ok() ->
-			(* Success. Try to write the next frame: *)
-			is_sent None;
-			output_start ep
-		    | `Error e ->
-			(* Error *)
-			is_sent (Some e);
-			abort_and_propagate_error ep e
-	       )
-    frame
+
+and output_next ep mplex = function
+  | (x :: xs, is_sent) ->
+    dlog "output_next_frame";
+    mplex # start_writing
+      ~when_done:(function
+      | `Ok () ->
+        output_next ep mplex (xs, is_sent)
+      | `Error e -> is_sent (Some e);
+        abort_and_propagate_error ep e
+      ) x
+  | ([], is_sent) ->
+    ep.out_active <- false;
+    is_sent None;
+    output_start ep
 
 
 let shared_sub_mstring (ms : Netxdr_mstring.mstring)
@@ -932,7 +924,7 @@ let connect ep =
         | `TLS(conn,_) ->
 	    let spec, host_opt =
 	      match conn with
-		| `Sockaddr (Unix.ADDR_INET(ip,port)) -> 
+		| `Sockaddr (Unix.ADDR_INET(ip,port)) ->
 		    `Sock_inet(Unix.SOCK_STREAM, ip, port), None
 		| `Sockaddr (Unix.ADDR_UNIX path) ->
 		    `Sock_unix(Unix.SOCK_STREAM, path), None
