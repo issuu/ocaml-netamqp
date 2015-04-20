@@ -2,6 +2,7 @@
 
 version = 1.1
 fullname = netamqp-$(version)
+package = netamqp2
 
 all:
 	omake
@@ -10,10 +11,12 @@ doc:
 	omake doc/html
 
 install:
-	ocamlfind install netamqp2 \
+	ocamlfind install $(package) \
 		META *.mli *.cmi netamqp.cma amqp0-9-1.xml \
 		-optional netamqp.cmxa netamqp.a \
 		-patch-version "$(version)"
+uninstall:
+	ocamlfind remove $(package)
 
 # Note that the files netamqp_method_0_9.ml* are generated. For running
 # the generator we need PXP, though, so by distributing the generated
