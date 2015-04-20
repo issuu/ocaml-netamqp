@@ -15,6 +15,9 @@ install:
 		-optional netamqp.cmxa netamqp.a \
 		-patch-version "$(version)"
 
+uninstall:
+	ocamlfind remove netamqp2
+
 # Note that the files netamqp_method_0_9.ml* are generated. For running
 # the generator we need PXP, though, so by distributing the generated
 # files we avoid this dependency.
